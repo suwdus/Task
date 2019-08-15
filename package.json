@@ -1,0 +1,28 @@
+{
+  "name": "task",
+  "version": "1.0.0",
+  "description": "Task is a command line task manager that integrates with Alexa and Google Mail.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "Task",
+    "Alexa",
+    "Google",
+    "Mail",
+    "Command",
+    "Line"
+  ],
+  "bin": {
+    "task": "bin/task"
+  },
+  "author": "Philip M. Turner",
+  "license": "ISC",
+  "devDependencies": {},
+  "dependencies": {
+    "aws-sdk": "^2.510.0",
+    "minimist": "^1.2.0",
+    "moment": "^2.24.0"
+  }
+}
