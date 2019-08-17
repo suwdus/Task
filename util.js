@@ -2,103 +2,74 @@ const fs = require('fs');
 const minimist = require('minimist')
 const TASK_FILE = '/home/ec2-user/.task/tasks';
 const CONFIG_FILE= '/home/ec2-user/.task/config';
-
 //TODO: Get $HOME directory via API.
 
-var Util = {
-  addTask: function(task) {
+function Util() {
+}
 
-    verifyAddInput(args);
+Util.prototype.addTask = function(taskInput, doS3Upload) {
 
-    const doS3Upload = (args.upload || args.u) ? true : false;
+  if (doS3Upload) {
+    //TODO: Implement...
+  }
+}
 
-    //Set date task was created to now...
-    var createdDate = new Date().getTime();
-    task.title = (args.title ? args.title : null);
-    task.dueDate = (args.dueDate ? args.dueDate : null);
-    task.createdDate = createdDate;
+Util.prototype.initializeApplication = function(configValues) {
+  var taskFilePromise = fs.promises.access(CONFIG_FILE);
 
-    if (doS3Upload) {
-      //TODO: Implement...
+  taskFilePromise.then((data) => {
+    console.log('Task has been initialized already, nothing to do.');
+  }).catch( (err) => { /*Bucket does not exist for saving task data.*/
+    this.createBucketAndUpdateConfig(configValues);
+  });
+  //TODO: Append keys from config object to config file...
+}
+
+Util.prototype.listTasks = function() {
+  //TODO: Implement...
+}
+
+Util.prototype.updateTask = function() {
+  //TODO: Implement...
+}
+
+Util.prototype.deleteTask = function() {
+  //TODO: Implement...
+}
+
+Util.prototype.createBucketAndUpdateConfig = function(config) {
+  const AWS   = require('aws-sdk');
+  const uuid  = require('uuid');
+
+  console.log('Initializing task, creating a new bucket in S3...');
+
+  //Load in credentials...
+  //TODO: Get $HOME directory via API.
+  AWS.config.loadFromPath('/home/ec2-user/.aws/credentials.json');
+  //S3 object must be constructed after config load for creds to be captured.
+  const s3 = new AWS.S3({apiVersion: '2006-03-01'});
+
+  const params = {
+    Bucket: 'taskbucket' + uuid.v4()
+  };
+
+  //Create a bucket in nonspecific region.
+  s3.createBucket(params, (err, data) => {
+    if (err) {
+      console.log('Failed to create bucket in S3\n' + err);
+    } else {
+      console.log('Successfully created bucket in S3\n');
+      /*Note: More keys will be iteratively added from config. */
+      this.updateConfig({
+          bucketLocation : data.Location,
+          name : config.username
+        });
     }
-  },
-  listTasks : function() {
-    //TODO: Implement...
-  },
-  updateTask: function() {
-    //TODO: Implement...
-  },
-  deleteTask: function() {
-    //TODO: Implement...
-  },
-  createBucket: function() {
-    const AWS = require('awssdk');
-    const uuid = require('uuid');
-
-    console.log('Initializing task, creating a new bucket in S3...');
-
-    //Load in credentials...
-    //TODO: Get $HOME directory via API.
-    AWS.config.loadFromPath('/home/ec2user/.aws/credentials.json');
-    //S3 object must be constructed after config load for creds to be captured.
-    const s3 = new AWS.S3({apiVersion: '20060301'});
-
-    const params = {
-      Bucket: 'taskbucket' + uuid.v4()
-    };
-
-    //Create a bucket in nonspecific region.
-    s3.createBucket(params, (err, data) => {
-      if (err) {
-        console.log('Failed to create bucket in S3\n' + err);
-      } else {
-        console.log('Successfully creatted bucket in S3\n');
-        updateConfig({
-            bucketLocation : data.Location,
-            name : args.username
-          });
-      }
-    });
-  }
-}
-
-/*
- * ============================ Add Task API ============================
- * task add -t <title> -d <due date> ? -p <project_name> -u
- *
- * Mandatory Parameters:
- * --title,    -t: Short task title.
- * --due-date, -d: Many formats accepted.
- *
- * Optional Parameters:
- * --project, -p: Project name this project belongs to. If the project doesn't exist it
- * --upload, -u : If present, upload this and all local tasks to S3.
- *  will be created.
- *
-*/
-
-
-/* ============================ Helpers ============================ */
-
-function verifyAddInput(args) {
-  if (! args.title) {
-    throw 'Please supply --title argument';
-  }
-
-  if (! args.date) {
-    //TODO: Verify date string. Use moment package to parse the date string.
-    throw 'Please supply --due-date argument';
-  }
-}
-
-function verifyInitInput(args) {
-  if (! args.username) {
-    throw 'Please supply -username argument';
-  }
+  });
 }
 
 /* Write configuration information to $HOME/config */
-function updateConfig(config) {
+Util.prototype.updateConfig = function(config) {
   const configString = JSON.stringify(config);
   fs.promises
     .appendFile(CONFIG_FILE,configString)
@@ -108,3 +79,5 @@ function updateConfig(config) {
       console.log('Error writing data to config\n' + err);
     });
 }
+
+module.exports = Util;
