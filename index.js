@@ -1,4 +1,5 @@
 const fs = require('fs');
+const moment = require('moment');
 const CONFIG_FILE= '/home/ec2-user/.task/config';
 const Util = require('./util');
 
@@ -10,22 +11,29 @@ TaskCommand.run = function() {
 
   switch (subCommand) {
     case 'add':
-      verifyAddInput(args);
-      /*Determine whether to upload all local tasks to s3*/
+    case 'a':
+      validateAddInput(args);
+      /* Determine whether to upload all local tasks to s3 */
       const doS3Upload = argValue(args.upload, args.u);
-
       this.util.addTask(createTask(args), doS3Upload);
       break;
     case 'init':
-      verifyInitInput(args);
+    case 'i':
+      validateInitInput(args);
       //TODO: convert args into proper configuration object...
       this.util.initializeApplication(args);
       break;
     case 'list':
-      this.util.listTasks(args);
+    case 'ls':
+      const tasksPromise = this.util.getTasks(args);
+      printTasks(tasksPromise);
+      break;
     case 'update':
+    case 'u':
       this.util.updateTask(args);
+      break;
     case 'delete':
+    case 'd':
       this.util.deleteTask(args);
     default:
       console.log("Ueh, you don't know what you want to do..");
@@ -65,12 +73,12 @@ module.exports = TaskCommand;
 
 /* ============================ Helpers ============================ */
 
-function verifyInitInput(args) {
+function validateInitInput(args) {
   if (! args.username) {
     throw 'Please supply -username argument';
   }
 }
-function verifyAddInput(args) {
+function validateAddInput(args) {
   if ( !args.title && !args.t ) {
     console.log(args);
     throw 'Please supply --title argument';
@@ -79,14 +87,15 @@ function verifyAddInput(args) {
   if ( !args.date && !args.d ) {
     //TODO: Verify date string. Use moment package to parse the date string.
     throw 'Please supply --due-date argument';
+  } else if (! moment(argValue(args.date,args.d)).isValid()) {
+    throw 'Please enter a valid -due-date argument.';
   }
 }
 
 function createTask(args) {
   return {
     title: argValue(args.title, args.t),
-    //TODO: Use moment package...
-    creationDate: '2019',
+    creationDate: require('moment')().unix(), /* Outputs epoch */
     dueDate: getDate(argValue(args.dueDate,args.d))
   }
 }
@@ -95,7 +104,20 @@ function argValue(obj1, obj2) {
   return (obj1) ? obj1 : obj2;
 }
 
-//TODO: Implement...
+/* Get date */
 function getDate(date) {
-  return '2019';
+  if (! date ) { /* Check if date argument was passed. */
+    throw 'Validation Error: Date is required.';
+  } else if(! moment(date).isValid() ) {
+    throw 'Validation Error: Date is invalid.';
+  }
+  return moment(date).unix();
+}
+
+function printTasks(tasksPromise) {
+  tasksPromise.then((tasks) => {
+    tasks.forEach( (task) => {
+      console.log(`${task.title} ${task.dueDate} ${task.creationDate}`);
+    });
+  });
 }

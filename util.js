@@ -12,6 +12,21 @@ Util.prototype.addTask = function(taskInput, doS3Upload) {
   if (doS3Upload) {
     //TODO: Implement...
   }
+
+  this.getTasks()
+    .then((tasks) => {
+
+      tasks.push(taskInput);
+      const taskJSON = JSON.stringify(tasks);
+
+      fs.promises
+        .writeFile(TASK_FILE,taskJSON)
+        .then((data) => {
+          console.log('Successfully wrote data to task file\n' + taskJSON);
+        }).catch((err) => {
+          console.log('Error writing data to task file\n' + err);
+        });
+    });
 }
 
 Util.prototype.initializeApplication = function(configValues) {
@@ -25,8 +40,15 @@ Util.prototype.initializeApplication = function(configValues) {
   //TODO: Append keys from config object to config file...
 }
 
-Util.prototype.listTasks = function() {
-  //TODO: Implement...
+/* Returns a Promise containing task array. */
+Util.prototype.getTasks = function() {
+  return fs.promises
+    .readFile(TASK_FILE)
+    .then((dataString) => {
+      return JSON.parse(dataString);
+    }).catch((err) => {
+      console.log('Error reading data from task file\n' + err);
+    });
 }
 
 Util.prototype.updateTask = function() {
