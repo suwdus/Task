@@ -22,9 +22,9 @@ Util.prototype.addTask = function(taskInput, doS3Upload) {
       fs.promises
         .writeFile(TASK_FILE,taskJSON)
         .then((data) => {
-          console.log('Successfully wrote data to task file\n' + taskJSON);
+          console.log('1 task created');
         }).catch((err) => {
-          console.log('Error writing data to task file\n' + err);
+          console.log('Could not create task:\n' + err);
         });
     });
 }
@@ -99,6 +99,16 @@ Util.prototype.updateConfig = function(config) {
       console.log('Successfully wrote ' + configString + ' to config');
     }).catch((err) => {
       console.log('Error writing data to config\n' + err);
+    });
+}
+
+/* Delete tasks from ~/.tasks. */
+Util.prototype.clearTasks = function() {
+  const EMPTY_TASK_LIST_STR = '[]';
+  fs.promises
+    .writeFile(TASK_FILE, EMPTY_TASK_LIST_STR)
+    .catch((err) => {
+      console.log('Error writing data to task file\n' + err);
     });
 }
 
