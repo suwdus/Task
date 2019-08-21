@@ -76,7 +76,6 @@ function validateInitInput(args) {
 
 function validateAddInput(args) {
   if ( !args.title && !args.t ) {
-    console.log(args);
     throw 'Please supply --title argument';
   }
 
@@ -92,7 +91,8 @@ function createTask(args) {
   return {
     title: argValue(args.title, args.t),
     creationDate: moment().unix(), /* Outputs epoch */
-    dueDate: getDate(argValue(args.dueDate,args.d))
+    dueDate: getDate(argValue(args.dueDate,args.d)),
+    project: argValue(args.project, args.p)
   }
 }
 
@@ -106,5 +106,5 @@ function getDate(date) {
   if (! date ) {
     return;
   }
-  return moment(date).unix();
+  return moment(date).unix() * 1000;
 }

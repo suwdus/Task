@@ -7,7 +7,6 @@
 
 /* task ls|l ? <filter */
 
-const chalk = require('chalk');
 
 /* Column labels */
 const AGE_COLUMN_STRING         = 'Age';
@@ -22,6 +21,7 @@ const MEDIUM_TEXT_LENGTH_RESTRICTION  = 15;
 const LONG_TEXT_LENGTH_RESTRICTION    = 25;
 
 /* Maintains column ordering, labels and length restrictions */
+//TODO: Add dynamic padding for columns based on field values.
 const columns = [
     { colKey: ID_COLUMN_STRING,           lengthRestriction: SHORT_TEXT_LENGTH_RESTRICTION},
     { colKey: AGE_COLUMN_STRING,          lengthRestriction: SHORT_TEXT_LENGTH_RESTRICTION },
@@ -35,7 +35,7 @@ module.exports = function (tasks) {
   var header  = '';
 
   columns.forEach((column) => {
-    header += `${chalk.underline(column.colKey.padEnd(column.lengthRestriction))} `;
+    header += `${require('chalk').underline(column.colKey.padEnd(column.lengthRestriction))} `;
   });
 
   if (tasks.length > 0) /* Only print header if the user has tasks */
@@ -52,7 +52,7 @@ module.exports = function (tasks) {
     //Print the task...
     console.log(taskStr);
   });
-  console.log(`\n${tasks.length} tasks`);
+  console.log(`\n(${tasks.length} tasks)`);
 }
 
 /* ======================== Helpers ======================== */

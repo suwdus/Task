@@ -35,7 +35,7 @@ Util.prototype.initializeApplication = function(configValues) {
   taskFilePromise.then((data) => {
     console.log('Task has been initialized already, nothing to do.');
   }).catch( (err) => { /*Bucket does not exist for saving task data.*/
-    this.createBucketAndUpdateConfig(configValues);
+    this.createBucketAndUpdateConfig(configValues); //TODO: Split.
   });
   //TODO: Append keys from config object to config file...
 }
