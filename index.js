@@ -9,10 +9,10 @@
  *
  */
 
-const moment      = require('moment');
-const Util        = require('./util');
-const printTasks  = require('./commands/ls');
-const printCal    = require('./commands/cal');
+const moment                    = require('moment');
+const Util                      = require('./util');
+const getTaskListTerminalOutput = require('./commands/ls');
+const getCalendarTerminalOutput = require('./commands/cal');
 
 const TaskCommand = { util : new Util() };
 
@@ -39,7 +39,12 @@ TaskCommand.run = function() {
     case 'l':
       this.util
         .getTasks(args)
-        .then((tasks) => printTasks(tasks));
+        .then((tasks) => {
+          getTaskListTerminalOutput(tasks)
+          .then((tasksOutput) => {
+            console.log(tasksOutput);
+          });
+        });
       break;
     case 'update': /* Update task with annotation */
     case 'u':
@@ -57,8 +62,12 @@ TaskCommand.run = function() {
       this.util
         .getTasks(args)
         .then((tasks) => {
-          printCal(tasks);
-          printTasks(tasks);
+          taskListOutputPromise = getTaskListTerminalOutput(tasks);
+          getCalendarTerminalOutput(tasks).then((calendarOutput) => {
+            console.log(calendarOutput)  /* Print calendar to console first */
+            taskListOutputPromise.then((tasksOutput) =>
+              console.log(tasksOutput)); /* Print tasks to console after */
+          });
         });
       break;
     default:

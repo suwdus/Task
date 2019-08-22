@@ -7,62 +7,66 @@
 
 /* Prints the user's task calendar to the terminal window. */
 module.exports = function printCalendar(tasks) {
-  const childProcess  = require('child_process');
+  return new Promise( (resolve, reject) => {
+    const childProcess  = require('child_process');
 
-  var thisCal, prevCal, nextCal;
+    var thisCal, prevCal, nextCal;
 
-  var events                = require('events');
-  var eventEmitter          = new events.EventEmitter();
-  var childProcessDoneCount = 0;
+    var events                = require('events');
+    var eventEmitter          = new events.EventEmitter();
+    var childProcessDoneCount = 0;
 
-  //Assemble calendar string and add date highlighting once all calenders have returned...
-  eventEmitter.on('retrievedCal', () => {
-    childProcessDoneCount++;
+    //Assemble calendar string and add date highlighting once all calenders have returned...
+    eventEmitter.on('retrievedCal', () => {
+      childProcessDoneCount++;
 
-    if (childProcessDoneCount == 3)
-      console.log( /* Print 3-Calendar display to console */
-        buildCalendarOutput(
-          tasks,
-          prevCal,
-          thisCal,
-          nextCal)
-      );
+      if (childProcessDoneCount == 3) {
+        resolve( /* Print 3-Calendar display to console */
+          buildCalendarOutput(
+            tasks,
+            prevCal,
+            thisCal,
+            nextCal)
+        );
+      }
+    });
+
+    //Use default os `cal` program to build calendar strings...
+    const now                     = new Date();
+    const CUR_MONTH_NUM           = now.getMonth()+1; //date month indexed from 0.
+    const CUR_YEAR_NUM            = now.getYear();
+
+    //TODO: Make calendar months shown configurable.
+    const prevCalChildProcess     = childProcess.spawn('cal', [CUR_MONTH_NUM-1,'2019']);
+    const currentCalChildProcess  = childProcess.spawn('cal');
+    const nextCalChildProcess     = childProcess.spawn('cal',[CUR_MONTH_NUM+1,'2019']);
+
+    prevCalChildProcess.stdout.on('data', (calendar) => {
+      prevCal = {
+        month:CUR_MONTH_NUM -1,
+        calendarString: calendar.toString()
+      };
+      eventEmitter.emit('retrievedCal');
+    });
+
+    currentCalChildProcess.stdout.on('data', (calendar) => {
+      eventEmitter.emit('retrievedCal');
+      thisCal = {
+        month: CUR_MONTH_NUM,
+        calendarString: calendar.toString()
+      };
+    });
+
+
+    nextCalChildProcess.stdout.on('data', (calendar) => {
+      nextCal = {
+        month: CUR_MONTH_NUM+1,
+        calendarString: calendar.toString()
+      };
+      eventEmitter.emit('retrievedCal');
+    });
   });
 
-  //Use default os `cal` program to build calendar strings...
-  const now                     = new Date();
-  const CUR_MONTH_NUM           = now.getMonth()+1; //date month indexed from 0.
-  const CUR_YEAR_NUM            = now.getYear();
-
-  //TODO: Make calendar months shown configurable.
-  const prevCalChildProcess     = childProcess.spawn('cal', [CUR_MONTH_NUM-1,'2019']);
-  const currentCalChildProcess  = childProcess.spawn('cal');
-  const nextCalChildProcess     = childProcess.spawn('cal',[CUR_MONTH_NUM+1,'2019']);
-
-  prevCalChildProcess.stdout.on('data', (calendar) => {
-    prevCal = {
-      month:CUR_MONTH_NUM -1,
-      calendarString: calendar.toString()
-    };
-    eventEmitter.emit('retrievedCal');
-  });
-
-  currentCalChildProcess.stdout.on('data', (calendar) => {
-    eventEmitter.emit('retrievedCal');
-    thisCal = {
-      month: CUR_MONTH_NUM,
-      calendarString: calendar.toString()
-    };
-  });
-
-
-  nextCalChildProcess.stdout.on('data', (calendar) => {
-    nextCal = {
-      month: CUR_MONTH_NUM+1,
-      calendarString: calendar.toString()
-    };
-    eventEmitter.emit('retrievedCal');
-  });
 
 }
 
