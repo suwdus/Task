@@ -63,6 +63,7 @@ module.exports = function printCalendar(tasks) {
     };
     eventEmitter.emit('retrievedCal');
   });
+
 }
 
 function buildCalendarOutput(tasks, cal1, cal2, cal3) {
@@ -97,35 +98,43 @@ function buildCalendarOutput(tasks, cal1, cal2, cal3) {
 }
 
 function colorize(tasks, cal) {
-  var colorCalString  = cal.calendarString; //Will transform calendar string...
+  var calendarString  = cal.calendarString; //Will transform calendar string...
 
   //Remove month header in first line of calendar...
-  var idx       = colorCalString.match('\n').index;
-  var headerStr = colorCalString.slice(0, idx+1)
-  colorCalString      = colorCalString.slice(idx+1, colorCalString.length);
+  var idx         = calendarString.match('\n').index;
+  var headerStr   = calendarString.slice(0, idx+1)
+  calendarString  = calendarString.slice(idx+1, calendarString.length);
 
   tasks.forEach((task) => {
     if (task.dueDate) { /* TODO: Only highlight if date of task corresponds to calendar month */
-      const dd = new Date(task.dueDate).getDate();
-      colorCalString = colorCalString.replace(` ${dd.toString()}`, ` ${require('chalk').red(dd.toString())}`);
+      const date      = new Date(task.dueDate);
+      const dueDate   = date.getDate();
+      const month     = date.getMonth()+1;
+      calendarString  = (cal.month === month) ? highlightDueDate(calendarString, dueDate) : calendarString;
     }
   });
 
   //Add the month header back to the calendar string...
-  colorCalString = headerStr + colorCalString;
+  calendarString = headerStr + calendarString;
 
   //Apply additional transformations...
-  colorCalString = highlightToday(cal, colorCalString);
+  calendarString = highlightToday(cal, calendarString);
 
-  return colorCalString;
+  //TODO:Print current, due soon tasks to the console.
+
+  return calendarString;
 }
 
-function highlightToday(calObj, colorCalString) {
+function highlightToday(calObj, calendarString) {
   const now = new Date();
 
   if (calObj.month !== now.getMonth()+1)
-    return colorCalString; /* Only highlight day on this month's calendar. */
+    return calendarString; /* Only highlight day on this month's calendar. */
 
-  return colorCalString.replace(now.getDate(),
+  return calendarString.replace(now.getDate(),
     require('chalk').blue(now.getDate()));
+}
+
+function highlightDueDate(calendarString, dueDate) {
+  return calendarString.replace(`${dueDate.toString()}`, `${require('chalk').red(dueDate.toString())}`);
 }

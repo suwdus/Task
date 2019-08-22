@@ -56,7 +56,10 @@ TaskCommand.run = function() {
     case 'c':
       this.util
         .getTasks(args)
-        .then((tasks) => printCal(tasks));
+        .then((tasks) => {
+          printCal(tasks);
+          printTasks(tasks);
+        });
       break;
     default:
       console.log("Ueh, you don't know what you want to do..");
@@ -90,7 +93,7 @@ function validateAddInput(args) {
 function createTask(args) {
   return {
     title: argValue(args.title, args.t),
-    creationDate: moment().unix(), /* Outputs epoch */
+    creationDate: moment().valueOf(), /* Outputs epoch */
     dueDate: getDate(argValue(args.dueDate,args.d)),
     project: argValue(args.project, args.p)
   }
@@ -106,5 +109,5 @@ function getDate(date) {
   if (! date ) {
     return;
   }
-  return moment(date).unix() * 1000;
+  return moment(date).valueOf();
 }

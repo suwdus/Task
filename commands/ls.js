@@ -9,65 +9,100 @@
 
 
 /* Column labels */
-const AGE_COLUMN_STRING         = 'Age';
-const ID_COLUMN_STRING          = 'ID';
-const PROJECT_COLUMN_STRING     = 'Project';
-const URGENCY_COLUMN_STRING     = 'Urg';
-const DESCRIPTION_COLUMN_STRING = 'Description';
+const AGE_COLUMN_LABEL         = 'Age';
+const ID_COLUMN_LABEL          = 'ID';
+const PROJECT_COLUMN_LABEL     = 'Project';
+const URGENCY_COLUMN_LABEL     = 'Urg';
+const DESCRIPTION_COLUMN_LABEL = 'Description';
+const DUE_DATE_COLUMN_LABEL    = 'Due Date';
 
-/* For limiting text output length */
-const SHORT_TEXT_LENGTH_RESTRICTION   = 3;
-const MEDIUM_TEXT_LENGTH_RESTRICTION  = 15;
-const LONG_TEXT_LENGTH_RESTRICTION    = 25;
-
-/* Maintains column ordering, labels and length restrictions */
-//TODO: Add dynamic padding for columns based on field values.
+/* Maintains column ordering, labels and length restrictions.
+ *
+ * `minLen`, `maxLen`, `endValChar` are used to support dynamic column padding.
+ *
+ */
 const columns = [
-    { colKey: ID_COLUMN_STRING,           lengthRestriction: SHORT_TEXT_LENGTH_RESTRICTION},
-    { colKey: AGE_COLUMN_STRING,          lengthRestriction: SHORT_TEXT_LENGTH_RESTRICTION },
-    { colKey: PROJECT_COLUMN_STRING,      lengthRestriction: MEDIUM_TEXT_LENGTH_RESTRICTION },
-    { colKey: DESCRIPTION_COLUMN_STRING,  lengthRestriction: LONG_TEXT_LENGTH_RESTRICTION },
-    { colKey: URGENCY_COLUMN_STRING,      lengthRestriction: SHORT_TEXT_LENGTH_RESTRICTION }];
+    { colKey: ID_COLUMN_LABEL,           lengthRestriction: 50, maxLen: -1, minLen: ID_COLUMN_LABEL.length, endValChar: '_'},
+    { colKey: AGE_COLUMN_LABEL,          lengthRestriction: 50, maxLen: -1, minLen: AGE_COLUMN_LABEL.length, endValChar: '~' },
+    { colKey: PROJECT_COLUMN_LABEL,      lengthRestriction: 50, maxLen: -1, minLen: PROJECT_COLUMN_LABEL.length, endValChar: '@' },
+    { colKey: DESCRIPTION_COLUMN_LABEL,  lengthRestriction: 50, maxLen: -1, minLen: DESCRIPTION_COLUMN_LABEL.length, endValChar: '#' },
+    { colKey: DUE_DATE_COLUMN_LABEL,     lengthRestriction: 50, maxLen: -1, minLen: DUE_DATE_COLUMN_LABEL.length, endValChar: '`' },
+    { colKey: URGENCY_COLUMN_LABEL,      lengthRestriction: 50, maxLen: -1, minLen: URGENCY_COLUMN_LABEL.length, endValChar: '!' }
+];
 
-module.exports = function (tasks) {
+module.exports = function printTasks(tasks, filters) {
 
-  //Create task table header, underline each column title...
   var header  = '';
 
+  //Create task table header adding default padding...
+  //TODO: underline each column title...
   columns.forEach((column) => {
-    header += `${require('chalk').underline(column.colKey.padEnd(column.lengthRestriction))} `;
+    header += `${(column.colKey + column.endValChar).padEnd(column.lengthRestriction)} `;
   });
 
-  if (tasks.length > 0) /* Only print header if the user has tasks */
-    console.log(header);
+  var tasksOutputStr = '';
+
+  if (tasks.length > 0) /* Only include header if the user has tasks */
+    tasksOutputStr += `${header}\n`;
 
   tasks.forEach( (task) => {
     var taskStr = '';
 
+    //Construct row for task...
     columns.forEach((column) => {
-      //Construct task string...
-      taskStr += `${getColVal(column.colKey, task).padEnd(column.lengthRestriction)} `;
+      const curMaxLen   = column['maxLen'];
+      const columnValue = getColVal(column.colKey, task); //i.e. 'Sample Task 1 long description'
+      column['maxLen']  = (columnValue.length > curMaxLen) ? columnValue.length : curMaxLen;
+
+      //Pad task row...
+      taskStr += `${(columnValue + column.endValChar).padEnd(column.lengthRestriction)} `;
     });
 
-    //Print the task...
-    console.log(taskStr);
+    tasksOutputStr += `${taskStr}\n`;
   });
-  console.log(`\n(${tasks.length} tasks)`);
+
+  /* Trim excess white space from task output */
+  columns.forEach((columnDefinition) => {
+    tasksOutputStr = trimExcessWhitespace(columnDefinition, tasksOutputStr);
+  });
+
+  console.log(tasksOutputStr);
+
+  console.log(`\n(${tasks.length} task${ (tasks.length) === 1 ? '':'s'})`); /* i.e. Prints (1 tasks). */
+
 }
 
 /* ======================== Helpers ======================== */
 
 function getColVal(colKey, task) {
   switch (colKey) {
-    case ID_COLUMN_STRING:
-      return '6d';            /* TODO: */
-    case AGE_COLUMN_STRING:
+    case ID_COLUMN_LABEL:
       return '1';             /* TODO: */
-    case PROJECT_COLUMN_STRING:
-      return 'Cool Project';  /* TODO: */
-    case URGENCY_COLUMN_STRING:
+    case AGE_COLUMN_LABEL:
+      return getAgeFromDate(task.creationDate);
+    case PROJECT_COLUMN_LABEL:
+      return task.project;
+    case URGENCY_COLUMN_LABEL:
       return '.05';           /* TODO: */
-    case DESCRIPTION_COLUMN_STRING:
+    case DESCRIPTION_COLUMN_LABEL:
       return task.title;
+    case DUE_DATE_COLUMN_LABEL:
+      return getDateString(task.dueDate);
   }
+}
+
+function getDateString(date) {
+  return require('moment')(date).format("dddd, MMMM Do YYYY");
+}
+
+function getAgeFromDate(date) {
+  var moment = require('moment');
+  var thing = moment(date).diff(moment(), 'days');
+  return thing.toString();
+}
+
+function trimExcessWhitespace(columnDefinition, tasksOutputStr) {
+  const excessWhitespaceCount = columnDefinition.lengthRestriction - columnDefinition.maxLen-3;
+  const re = new RegExp(`${columnDefinition.endValChar}.{${excessWhitespaceCount}}`, 'g');
+  return tasksOutputStr.replace(re,'');
 }
