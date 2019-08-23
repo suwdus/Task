@@ -11,10 +11,11 @@
 
 const moment                    = require('moment');
 const Util                      = require('./util');
+const Dao                       = require('./dao');
 const getTaskListTerminalOutput = require('./commands/ls');
 const getCalendarTerminalOutput = require('./commands/cal');
 
-const TaskCommand = { util : new Util() };
+const TaskCommand = { util : new Util(), dao: new Dao() };
 
 TaskCommand.run = function() {
   const args = require('minimist')(process.argv.slice(2));
@@ -26,7 +27,7 @@ TaskCommand.run = function() {
       validateAddInput(args);
       /* Determine whether to upload all local tasks to s3 */
       const doS3Upload = argValue(args.upload, args.u);
-      this.util.addTask(createTask(args), doS3Upload);
+      this.dao.createTask(createTask(args), doS3Upload);
       break;
     case 'init':
     case 'i':
@@ -37,7 +38,7 @@ TaskCommand.run = function() {
     case 'list':
     case 'ls':
     case 'l':
-      this.util
+      this.dao
         .getTasks(args)
         .then((tasks) => {
           getTaskListTerminalOutput(tasks)
@@ -48,22 +49,23 @@ TaskCommand.run = function() {
       break;
     case 'update': /* Update task with annotation */
     case 'u':
-      this.util.updateTask(args);
+      this.dao.updateTask(args);
       break;
     case 'delete': /* Delete specific task */
     case 'd':
-      this.util.deleteTask(args);
+      this.dao.deleteTask(args);
     case 'clear':
       //TODO: Prompt user for confirmation...
-      this.util.clearTasks();
+      this.dao.clearTasks();
       break;
     case 'cal': /* Print task calendar to the terminal */
     case 'c':
-      this.util
+      this.dao
         .getTasks(args)
         .then((tasks) => {
           taskListOutputPromise = getTaskListTerminalOutput(tasks);
           getCalendarTerminalOutput(tasks).then((calendarOutput) => {
+            console.log(`Current time is ${require('moment')().format("ddd, hA")}`);
             console.log(calendarOutput)  /* Print calendar to console first */
             taskListOutputPromise.then((tasksOutput) =>
               console.log(tasksOutput)); /* Print tasks to console after */
@@ -92,7 +94,6 @@ function validateAddInput(args) {
   }
 
   if ( !args.date && !args.d ) {
-    //TODO: Verify date string. Use moment package to parse the date string.
     throw 'Please supply --due-date argument';
   } else if (! moment(argValue(args.date,args.d)).isValid()) {
     throw 'Please enter a valid -due-date argument.';
@@ -104,7 +105,14 @@ function createTask(args) {
     title: argValue(args.title, args.t),
     creationDate: moment().valueOf(), /* Outputs epoch */
     dueDate: getDate(argValue(args.dueDate,args.d)),
-    project: argValue(args.project, args.p)
+    project: argValue(args.project, args.p),
+    subtasks: [],
+    points:0,
+    owner:null,
+    subProjects:null,
+    isProject:false,
+    isActive:false,
+    annotations:[]
   }
 }
 

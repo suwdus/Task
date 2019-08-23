@@ -19,6 +19,7 @@ const DUE_DATE_COLUMN_LABEL    = 'Due Date';
 module.exports = function getTaskListTerminalOutput(tasks, filters) {
 
   return new Promise( (resolve,reject) => {
+    tasks = Object.values(tasks.allTasks); //TODO: Base filtering on user input...
     if (tasks.length === 0) /* Only construct output if tasks are present */
       resolve(`0 tasks`);
 

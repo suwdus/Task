@@ -8,6 +8,7 @@
 /* Prints the user's task calendar to the terminal window. */
 module.exports = function printCalendar(tasks) {
   return new Promise( (resolve, reject) => {
+    tasks = Object.values(tasks.allTasks); //TODO: Base filtering on user input...
     const childProcess  = require('child_process');
 
     var thisCal, prevCal, nextCal;
