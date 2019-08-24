@@ -5,10 +5,10 @@
  */
 
 
-/* Prints the user's task calendar to the terminal window. */
-module.exports = function printCalendar(tasks) {
+/* Returns a Promise containing the task calendar string. */
+exports.getCalendarTerminalOutput = function (data) {
   return new Promise( (resolve, reject) => {
-    tasks = Object.values(tasks.allTasks); //TODO: Base filtering on user input...
+    var tasks = Object.values(data.allTasks); //TODO: Base filtering on user input...
     const childProcess  = require('child_process');
 
     var thisCal, prevCal, nextCal;
@@ -22,7 +22,7 @@ module.exports = function printCalendar(tasks) {
       childProcessDoneCount++;
 
       if (childProcessDoneCount == 3) {
-        resolve( /* Print 3-Calendar display to console */
+        resolve( /* Return formatted 3-Calendar display */
           buildCalendarOutput(
             tasks,
             prevCal,
@@ -72,50 +72,51 @@ module.exports = function printCalendar(tasks) {
 }
 
 function buildCalendarOutput(tasks, cal1, cal2, cal3) {
-  const chalk         = require('chalk');
+  const chalk  = require('chalk');
 
-  const legend        = `Legend: ` +
-                          ` ${chalk.blue('today')},` +
-                          ` ${chalk.red('due')}, `+
-                          ` ${chalk.yellow('due-today')},`+
-                          ` ${chalk.bold('overdue')},`+
-                          ` weekend,`+
-                          ` ${chalk.green('holiday')},`+
-                          ` ${chalk.underline('weeknumber')}.`
+  const legend = `Legend: ` +
+                ` ${chalk.blue('today')},` +
+                ` ${chalk.red('due')}, `+
+                ` ${chalk.yellow('due-today')},`+
+                ` ${chalk.bold('overdue')},`+
+                ` weekend,`+
+                ` ${chalk.green('holiday')},`+
+                ` ${chalk.underline('weeknumber')}.`
 
   var calendarString = '';
 
-  /**
-   * Join months together once highlights have been added
-   * TODO: Put in helper...
-   *
-   */
-  const colorCal1 = colorize(tasks, cal1).split('\n');
-  const colorCal2 = colorize(tasks, cal2).split('\n');
-  const colorCal3 = colorize(tasks, cal3).split('\n');
+   /* Highlight calendar dates according to tasks and split on `\n` */
+  const splitCal1 = highlight(tasks, cal1).split('\n');
+  const splitCal2 = highlight(tasks, cal2).split('\n');
+  const splitCal3 = highlight(tasks, cal3).split('\n');
 
-  var calendarAll = '';
-  for (var j = 0; j < colorCal1.length; j++)
-    calendarAll += `\n${colorCal1[j].padEnd(20)}  ${colorCal2[j].padEnd(20)}  ${colorCal3[j].padEnd(20)}`;
+  /* Combine calendars, force 20 character calendar width per calendar. */
+  var calendarAll = ''; const len = splitCal1.length;
+  for (var j = 0; j < len; j++)
+    calendarAll += `\n${splitCal1[j].padEnd(20)}  ${splitCal2[j].padEnd(20)}  ${splitCal3[j].padEnd(20)}`;
   calendarAll += `\n${legend}\n`;
 
   return calendarAll;
 }
 
-function colorize(tasks, cal) {
+function highlight(tasks, cal) {
   var calendarString  = cal.calendarString; //Will transform calendar string...
 
   //Remove month header in first line of calendar...
   var idx         = calendarString.match('\n').index;
   var headerStr   = calendarString.slice(0, idx+1)
   calendarString  = calendarString.slice(idx+1, calendarString.length);
+  var moment      = require('moment-timezone');
+  const config    = require(APP_CONFIG_PATH);
+  const now       = moment().tz(config.timezone);
 
   tasks.forEach((task) => {
-    if (task.dueDate) { /* TODO: Only highlight if date of task corresponds to calendar month */
-      const date      = new Date(task.dueDate);
-      const dueDate   = date.getDate();
-      const month     = date.getMonth()+1;
-      calendarString  = (cal.month === month) ? highlightDueDate(calendarString, dueDate) : calendarString;
+    if (task.dueDate) {
+      const dueDate       = moment(task.dueDate).tz(config.timezone);
+      const dueDateMonth  = dueDate.month()+1;
+
+      calendarString = (cal.month === dueDateMonth) ?
+        highlightTaskDueDate(calendarString, dueDate) : calendarString;
     }
   });
 
@@ -123,23 +124,20 @@ function colorize(tasks, cal) {
   calendarString = headerStr + calendarString;
 
   //Apply additional transformations...
-  calendarString = highlightToday(cal, calendarString);
+
+  calendarString = (cal.month === now.month()+1) ? highlightToday(calendarString, now) : calendarString;
 
   //TODO:Print current, due soon tasks to the console.
 
   return calendarString;
 }
 
-function highlightToday(calObj, calendarString) {
-  const now = new Date();
+function highlightToday(calendarString, now) {
 
-  if (calObj.month !== now.getMonth()+1)
-    return calendarString; /* Only highlight day on this month's calendar. */
-
-  return calendarString.replace(now.getDate(),
-    require('chalk').blue(now.getDate()));
+  return calendarString.replace(now.date().toString(),
+    require('chalk').blue(now.date().toString()));
 }
 
-function highlightDueDate(calendarString, dueDate) {
-  return calendarString.replace(`${dueDate.toString()}`, `${require('chalk').red(dueDate.toString())}`);
+function highlightTaskDueDate(calendarString, dueDate) {
+  return calendarString.replace(`${dueDate.date()}`,`${require('chalk').red(dueDate.date())}`);
 }

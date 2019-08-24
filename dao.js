@@ -6,7 +6,7 @@
  *
  */
 
-const DATA_SCHEMA =
+const EMPTY_DATA_SCHEMA =
 {
   allTasks: {},
   activeTasks: {},
@@ -14,42 +14,43 @@ const DATA_SCHEMA =
   projects: {}
 }
 
+
 function Dao() {}
 
 Dao.prototype.createTask = function(taskInput, doS3Upload) {
+  const config = require(APP_CONFIG_PATH);
 
   if (doS3Upload) {
     //TODO: Implement...
   }
 
-  this.getTasks()
-    .then((tasks) => {
+  const tasks = this.getTasks();
 
-      //TODO: Validate data, implement nextID() function.
-      const id = Object.keys(tasks.allTasks).length;
-      tasks.allTasks[id] = taskInput;
-      const tasksJSON = JSON.stringify(tasks);
+  //TODO: Validate data, implement nextID() function.
+  const id            = Object.keys(tasks.allTasks).length;
+  tasks.allTasks[id]  = taskInput; /* Add task */
 
-      require('fs').promises
-        .writeFile(require('./config').TASK_FILE, tasksJSON)
-        .then((data) => {
-          console.log('1 task created');
-        }).catch((err) => {
-          console.log('Could not create task', err);
-        });
-    });
+  const json = JSON.stringify(tasks);
+
+  require('fs').promises.writeFile(config.taskFile, json)
+  .then(() => {
+    console.log('1 task created');
+  }).catch((err) => {
+    console.log('Could not create task', err);
+  });
+
 }
 
 /* Delete tasks from ~/.tasks. */
 Dao.prototype.clearTasks = function() {
-  const taskFile  = require('./config').TASK_FILE;
-  const schema    = JSON.stringify(DATA_SCHEMA);
+  const config    = require(APP_CONFIG_PATH);
+  const taskFile  = config.taskFile;
+  const schema    = JSON.stringify(EMPTY_DATA_SCHEMA);
 
   require('fs').promises
-    .writeFile(taskFile, schema)
-    .catch((err) => {
-      console.log('Error writing data to task file', err);
-    });
+  .writeFile(taskFile, schema)
+  .then(() => console.log('Successfully cleared all tasks from ' + taskFile))
+  .catch((err) => console.log('Error writing data to task file', err));
 }
 
 /* Schema A/O (09/23/2019)
@@ -64,13 +65,8 @@ Dao.prototype.clearTasks = function() {
  *
  */
 Dao.prototype.getTasks = function() {
-  return require('fs').promises
-    .readFile(require('./config').TASK_FILE)
-    .then((dataString) => {
-      return JSON.parse(dataString);
-    }).catch((err) => {
-      console.log('Error reading data from task file', err);
-    });
+  const taskJsonPath = require(APP_CONFIG_PATH).taskFile;
+  return require(taskJsonPath);
 }
 
 Dao.prototype.updateTask = function() {
@@ -80,7 +76,5 @@ Dao.prototype.updateTask = function() {
 Dao.prototype.deleteTask = function() {
   //TODO: Implement...
 }
-
-
 
 module.exports = Dao;

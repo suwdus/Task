@@ -16,7 +16,7 @@ const URGENCY_COLUMN_LABEL     = 'Urg';
 const DESCRIPTION_COLUMN_LABEL = 'Description';
 const DUE_DATE_COLUMN_LABEL    = 'Due Date';
 
-module.exports = function getTaskListTerminalOutput(tasks, filters) {
+exports.getTaskListTerminalOutput = function (tasks, filters) {
 
   return new Promise( (resolve,reject) => {
     tasks = Object.values(tasks.allTasks); //TODO: Base filtering on user input...
@@ -70,7 +70,10 @@ module.exports = function getTaskListTerminalOutput(tasks, filters) {
 /* ======================== Helpers ======================== */
 
 function getDateString(date) {
-  return require('moment')(date).format("dddd, MMMM Do YYYY");
+  var moment      = require('moment-timezone');
+  const timezone  = require(APP_CONFIG_PATH).timezone;
+
+  return moment(date).tz(timezone).format("dddd, MMMM Do YYYY");
 }
 
 function getAgeFromDate(date) {

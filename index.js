@@ -9,11 +9,9 @@
  *
  */
 
-const moment                    = require('moment');
+const moment                    = require('moment-timezone');
 const Util                      = require('./util');
 const Dao                       = require('./dao');
-const getTaskListTerminalOutput = require('./commands/ls');
-const getCalendarTerminalOutput = require('./commands/cal');
 
 const TaskCommand = { util : new Util(), dao: new Dao() };
 
@@ -38,14 +36,11 @@ TaskCommand.run = function() {
     case 'list':
     case 'ls':
     case 'l':
-      this.dao
-        .getTasks(args)
-        .then((tasks) => {
-          getTaskListTerminalOutput(tasks)
-          .then((tasksOutput) => {
-            console.log(tasksOutput);
-          });
-        });
+      this.tasks = this.dao.getTasks();
+      require('./commands/ls').getTaskListTerminalOutput(this.tasks)
+      .then((tasksOutput) => {
+        console.log(tasksOutput);
+      });
       break;
     case 'update': /* Update task with annotation */
     case 'u':
@@ -60,17 +55,25 @@ TaskCommand.run = function() {
       break;
     case 'cal': /* Print task calendar to the terminal */
     case 'c':
-      this.dao
-        .getTasks(args)
-        .then((tasks) => {
-          taskListOutputPromise = getTaskListTerminalOutput(tasks);
-          getCalendarTerminalOutput(tasks).then((calendarOutput) => {
-            console.log(`Current time is ${require('moment')().format("ddd, hA")}`);
-            console.log(calendarOutput)  /* Print calendar to console first */
-            taskListOutputPromise.then((tasksOutput) =>
-              console.log(tasksOutput)); /* Print tasks to console after */
-          });
+      if (! this.tasks)
+        this.tasks = this.dao.getTasks();
+
+      const config = require(APP_CONFIG_PATH);
+      const moment = require('moment-timezone');
+
+      taskListOutputPromise = require('./commands/ls')
+                .getTaskListTerminalOutput(this.tasks);
+
+      require('./commands/cal').getCalendarTerminalOutput(this.tasks)
+      .then((calendarOutput) => {
+        taskListOutputPromise.then((taskList) => {
+          var out = `Currently in Q${moment().quarter()} ` + `${moment().year().toString()}\n\n` +
+                    `${moment().tz(config.timezone).format("ddd, hA")}\n` +
+                    `${calendarOutput}\n` +
+                    `${taskList}`;
+          console.log(out);
         });
+      });
       break;
     default:
       console.log("Ueh, you don't know what you want to do..");
@@ -83,7 +86,7 @@ module.exports = TaskCommand;
 /* ======================== Helpers ======================== */
 
 function validateInitInput(args) {
-  if (! args.username) {
+  if ( !args.username && !args.u ) {
     throw 'Please supply -username argument';
   }
 }
@@ -101,30 +104,25 @@ function validateAddInput(args) {
 }
 
 function createTask(args) {
+  const config = require(APP_CONFIG_PATH);
+
   return {
     title: argValue(args.title, args.t),
-    creationDate: moment().valueOf(), /* Outputs epoch */
-    dueDate: getDate(argValue(args.dueDate,args.d)),
+    creationDate: moment(),
+    dueDate: moment(argValue(args.dueDate,args.d)),
+    completionDate: null,
     project: argValue(args.project, args.p),
     subtasks: [],
     points:0,
-    owner:null,
+    owner:config.name,
     subProjects:null,
+    annotations:[],
     isProject:false,
-    isActive:false,
-    annotations:[]
+    isActive:false
   }
 }
 
 /* Get non-null arg value if it exits. */
 function argValue(obj1, obj2) {
   return (obj1) ? obj1 : obj2;
-}
-
-/* Get epoch from date string. */
-function getDate(date) {
-  if (! date ) {
-    return;
-  }
-  return moment(date).valueOf();
 }
