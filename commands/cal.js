@@ -4,11 +4,22 @@
  *
  */
 
+const Util = require('../util');
+
+function CalendarCommand(appData) {
+  this.appData  = appData;
+  this.util     = new Util();
+}
 
 /* Returns a Promise containing the task calendar string. */
-exports.getCalendarTerminalOutput = function (data) {
-  return new Promise( (resolve, reject) => {
-    var tasks = Object.values(data.allTasks); //TODO: Base filtering on user input...
+CalendarCommand.prototype.run = function () {
+  const config = require(APP_CONFIG_PATH);
+  const moment = require('moment-timezone');
+
+  var taskListOutputPromise = this.util.printTasks(this.appData.allTasks);
+
+  var calendarOutputPromise = new Promise( (resolve, reject) => {
+    var allTasks = Object.values(this.appData.allTasks); //TODO: Base filtering on user input...
     const childProcess  = require('child_process');
 
     var thisCal, prevCal, nextCal;
@@ -24,7 +35,7 @@ exports.getCalendarTerminalOutput = function (data) {
       if (childProcessDoneCount == 3) {
         resolve( /* Return formatted 3-Calendar display */
           buildCalendarOutput(
-            tasks,
+            allTasks,
             prevCal,
             thisCal,
             nextCal)
@@ -68,8 +79,22 @@ exports.getCalendarTerminalOutput = function (data) {
     });
   });
 
+  calendarOutputPromise
+  .then((calendarOutput) => {
+    taskListOutputPromise.then((taskList) => {
+      var out = `Currently in Q${moment().quarter()} ` + `${moment().year().toString()}\n\n` +
+                `${moment().tz(config.timezone).format("ddd, hA")}\n` +
+                `${calendarOutput}\n` +
+                `${taskList}`;
+      console.log(out);
+    });
+  });
 
 }
+
+module.exports = CalendarCommand;
+
+/* ======================== Helpers ======================== */
 
 function buildCalendarOutput(tasks, cal1, cal2, cal3) {
   const chalk  = require('chalk');
@@ -107,7 +132,6 @@ function highlight(tasks, cal) {
   var headerStr   = calendarString.slice(0, idx+1)
   calendarString  = calendarString.slice(idx+1, calendarString.length);
   var moment      = require('moment-timezone');
-  const config    = require(APP_CONFIG_PATH);
   const now       = moment().tz(config.timezone);
 
   tasks.forEach((task) => {

@@ -1,10 +1,16 @@
-const minimist = require('minimist')
-//TODO: Get $HOME directory via API.
-
-const Dao                       = require('./dao');
+/**
+ *
+ * Description: Handles app configuration, uploading/retrieving
+ * to dependent services.
+ *
+ *
+ * @author Philip M. Turner
+ *
+ */
+const minimist  = require('minimist')
+const Dao       = require('./dao');
 
 function Util() {
-  global.APP_CONFIG_PATH = require('./config').configPath();
 }
 
 Util.prototype.dao = new Dao();
@@ -15,13 +21,11 @@ Util.prototype.initializeApplication = function(configValues) {
   taskFilePromise.then((data) => {
     console.log('Task has been initialized already, nothing to do.');
   }).catch( (err) => { /*Bucket does not exist for saving task data.*/
-    this.createBucketAndUpdateConfig(configValues); //TODO: Split.
+    createBucketAndUpdateConfig(configValues);
   });
-  //TODO: Append keys from config object to config file...
 }
 
-
-Util.prototype.createBucketAndUpdateConfig = function(config) {
+function createBucketAndUpdateConfig(config) {
   const AWS             = require('aws-sdk');
   const uuid            = require('uuid');
   const credentialsFile = `${process.env.HOME}/.aws/credentials.json`;
@@ -47,21 +51,20 @@ Util.prototype.createBucketAndUpdateConfig = function(config) {
       console.log('Failed to create bucket in S3', err);
     } else {
       console.log('Successfully created bucket in S3');
-      //Note: More keys will be iteratively added from config.
-      this.updateConfig({
-          configFile: APP_CONFIG_PATH,
-          taskFile: taskFile,
-          bucketLocation : data.Location,
-          name : config.username,
-          timezone: 'America/Los_Angeles'
-        });
+      updateConfig({
+        configFile: APP_CONFIG_PATH,
+        taskFile: taskFile,
+        bucketLocation : data.Location,
+        name : config.name,
+        timezone: config.timezone
+      });
     }
   });
 
 }
 
 /* Write configuration information to file */
-Util.prototype.updateConfig = function(config) {
+function updateConfig(config) {
   const configString = JSON.stringify(config);
   const path         = require('path');
   const fs           = require('fs').promises;
@@ -83,6 +86,86 @@ Util.prototype.updateConfig = function(config) {
     .then(() => this.writeFile())
     .catch((err) => console.log('Could not create application directory', err));
   });
+}
+
+const AGE_COLUMN_LABEL         = 'Age';
+const ID_COLUMN_LABEL          = 'ID';
+const PROJECT_COLUMN_LABEL     = 'Project';
+const URGENCY_COLUMN_LABEL     = 'Urg';
+const DESCRIPTION_COLUMN_LABEL = 'Description';
+const OWNER_COLUMN_LABEL       = 'Owner';
+const DUE_DATE_COLUMN_LABEL    = 'Due Date';
+
+Util.prototype.printTasks = function (tasks, filters) {
+
+  return new Promise( (resolve,reject) => {
+    var taskList = Object.values(tasks); //TODO: Base filtering on user input...
+    if (taskList.length === 0) /* Only construct output if tasks are present */
+      resolve(`0 tasks`);
+
+    const {table}               = require('table');
+    const getBorderCharacters   = require('table').getBorderCharacters;
+    const chalk                 = require('chalk');
+
+    var data = [];
+
+    //Add header...
+    data.push([
+      chalk.underline(ID_COLUMN_LABEL),
+      chalk.underline(AGE_COLUMN_LABEL),
+      chalk.underline(PROJECT_COLUMN_LABEL),
+      chalk.underline(DESCRIPTION_COLUMN_LABEL),
+      chalk.underline(DUE_DATE_COLUMN_LABEL),
+      chalk.underline(OWNER_COLUMN_LABEL),
+      chalk.underline(URGENCY_COLUMN_LABEL)
+    ]);
+
+    taskList.forEach((task) => {
+      data.push([
+        task.id,
+        getAgeFromDate(task.creationDate),
+        (task.project) ? task.project : '/',
+        task.title,
+        chalk.italic(getDateString(task.dueDate)),
+        task.owner,
+        '0.5']) //TODO
+    });
+
+    var output = table(data, {
+      border: getBorderCharacters(`void`),
+      columnDefault: {
+          paddingLeft: 0,
+          paddingRight: 1
+      },
+      drawHorizontalLine: () => {
+          return false;
+      }
+    });
+
+    output += `\n(${taskList.length} task${ (taskList.length) === 1 ? '':'s'})\n`; /* i.e. Prints (1 task). */
+
+    resolve(output);
+  });
+
+}
+
+/* Get non-null arg value if it exits. */
+Util.prototype.argValue = function(obj1, obj2) {
+  return (obj1) ? obj1 : obj2;
+}
+/* ======================== Helpers ======================== */
+
+function getDateString(date) {
+  var moment      = require('moment-timezone');
+  const timezone  = config.timezone;
+
+  return moment(date).tz(timezone).format("dddd, MMMM Do YYYY");
+}
+
+function getAgeFromDate(date) {
+  var moment = require('moment');
+  var thing = moment(date).diff(moment(), 'days');
+  return thing.toString();
 }
 
 

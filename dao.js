@@ -10,6 +10,8 @@ const EMPTY_DATA_SCHEMA =
 {
   allTasks: {},
   activeTasks: {},
+  closedTasks: {},
+  backlogTasks: {},
   archivedTasks: {},
   projects: {}
 }
@@ -17,20 +19,44 @@ const EMPTY_DATA_SCHEMA =
 
 function Dao() {}
 
-Dao.prototype.createTask = function(taskInput, doS3Upload) {
+Dao.prototype.createTask = function(task, doS3Upload) {
   const config = require(APP_CONFIG_PATH);
 
   if (doS3Upload) {
     //TODO: Implement...
   }
 
-  const tasks = this.getTasks();
+  const appData = this.getAppData();
 
-  //TODO: Validate data, implement nextID() function.
-  const id            = Object.keys(tasks.allTasks).length;
-  tasks.allTasks[id]  = taskInput; /* Add task */
+  //TODO: Validate data...
+  var id = 1;
+  if (Object.keys(appData.allTasks).length > 0) { /*Get next id */
+    var _ = require('underscore');
+    id = _.max(Object.values(appData.allTasks),
+        (task) => { return task.id; }).id + 1;
+  }
 
-  const json = JSON.stringify(tasks);
+  task.id               = id;
+  appData.allTasks[id]  = task; /* Add task */
+
+  /* If this task represents a new project add it to the `project` collection. */
+  if (task.project)
+    appData.projects[id] = task;
+
+  /* If this task should be a child of an existing task/project, relate them */
+  if (task.parentTaskId) {
+    var parentTask = appData.projects[task.parentTaskId];
+    if (parentTask)
+      addSubTask(appData, parentTask, task);
+    else
+      throw `Parent project with id ${task.parentProjectId} does not exist`;
+  }
+
+  if (task.isActive) { /* Put task in collection of active tasks */
+    appData.activeTasks[id] = task;
+  }
+
+  const json = JSON.stringify(appData);
 
   require('fs').promises.writeFile(config.taskFile, json)
   .then(() => {
@@ -64,7 +90,7 @@ Dao.prototype.clearTasks = function() {
  * Will return the data structured as above.
  *
  */
-Dao.prototype.getTasks = function() {
+Dao.prototype.getAppData = function(filter) {
   const taskJsonPath = require(APP_CONFIG_PATH).taskFile;
   return require(taskJsonPath);
 }
@@ -75,6 +101,43 @@ Dao.prototype.updateTask = function() {
 
 Dao.prototype.deleteTask = function() {
   //TODO: Implement...
+}
+
+Dao.prototype.completeTask = function(id) {
+  var appData   = this.getAppData();
+  var allTasks  = appData.allTasks;
+  if (allTasks[id])
+    delete allTasks[id];
+  else
+    throw `Task ${id} does not exist!!!`;
+
+  const config    = require(APP_CONFIG_PATH);
+  const taskFile  = config.taskFile;
+  const modData   = JSON.stringify(appData);
+
+  require('fs').promises
+  .writeFile(taskFile, modData)
+  .then(() => console.log('1 task deleted.'))
+  .catch((err) => console.log('Error deleting task', err));
+
+}
+
+function addSubTask(appData, parentTask, childTask) {
+
+  /**
+   *
+   * It's possible to add child tasks to tasks that are in
+   *  the `active`, `backlog`, and/or `all` collections.
+   *
+   */
+
+  if (appData.allTasks[parentTask.id])
+    appData.allTasks[parentTask.id].subTasks = childTask;
+
+  if (appData.activeTasks[parentTask.id])
+    appData.activeTasks[parentTask.id].subTasks = childTask;
+
+  //TODO: Deprecate copying of tasks into seperate collections.
 }
 
 module.exports = Dao;

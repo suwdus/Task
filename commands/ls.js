@@ -5,79 +5,24 @@
  */
 
 
-/* task ls|l ? <filter */
+/* task ls|l ? <filter> */
 
 
-/* Column labels */
-const AGE_COLUMN_LABEL         = 'Age';
-const ID_COLUMN_LABEL          = 'ID';
-const PROJECT_COLUMN_LABEL     = 'Project';
-const URGENCY_COLUMN_LABEL     = 'Urg';
-const DESCRIPTION_COLUMN_LABEL = 'Description';
-const DUE_DATE_COLUMN_LABEL    = 'Due Date';
+const Util = require('../util');
 
-exports.getTaskListTerminalOutput = function (tasks, filters) {
+function ListCommand(appData) {
+  this.appData  = appData;
+  this.util     = new Util();
+}
 
-  return new Promise( (resolve,reject) => {
-    tasks = Object.values(tasks.allTasks); //TODO: Base filtering on user input...
-    if (tasks.length === 0) /* Only construct output if tasks are present */
-      resolve(`0 tasks`);
+ListCommand.prototype.run = function (args) {
 
-    const {table}               = require('table');
-    const getBorderCharacters   = require('table').getBorderCharacters;
-    const chalk                 = require('chalk');
-
-    var data = [];
-
-    //Add header...
-    data.push([
-      chalk.underline(ID_COLUMN_LABEL),
-      chalk.underline(AGE_COLUMN_LABEL),
-      chalk.underline(PROJECT_COLUMN_LABEL),
-      chalk.underline(DESCRIPTION_COLUMN_LABEL),
-      chalk.underline(DUE_DATE_COLUMN_LABEL),
-      chalk.underline(URGENCY_COLUMN_LABEL)
-    ]);
-
-    tasks.forEach((task) => {
-      data.push([
-        '1',    //TODO
-        getAgeFromDate(task.creationDate),
-        task.project,
-        task.title,
-        getDateString(task.dueDate),
-        '0.5']) //TODO
-    });
-
-    var output = table(data, {
-      border: getBorderCharacters(`void`),
-      columnDefault: {
-          paddingLeft: 0,
-          paddingRight: 1
-      },
-      drawHorizontalLine: () => {
-          return false
-      }
-    });
-
-    output += `\n(${tasks.length} task${ (tasks.length) === 1 ? '':'s'})\n`; /* i.e. Prints (1 task). */
-
-    resolve(output);
+  //TODO: Base filtering on user input...
+  var tasksPromise = this.util.printTasks(this.appData.allTasks, null);
+  tasksPromise.then((tasksOutput) => {
+    console.log(tasksOutput);
   });
 
 }
 
-/* ======================== Helpers ======================== */
-
-function getDateString(date) {
-  var moment      = require('moment-timezone');
-  const timezone  = require(APP_CONFIG_PATH).timezone;
-
-  return moment(date).tz(timezone).format("dddd, MMMM Do YYYY");
-}
-
-function getAgeFromDate(date) {
-  var moment = require('moment');
-  var thing = moment(date).diff(moment(), 'days');
-  return thing.toString();
-}
+module.exports = ListCommand;
