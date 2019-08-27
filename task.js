@@ -21,7 +21,7 @@ function TaskCommand() {
   const subCommand        = process.argv[2];
   global.APP_CONFIG_PATH  = configPath;
 
-  if (subCommand != 'init') {
+  if (subCommand !== 'init') {
     global.config = require(configPath);
   }
 
@@ -33,10 +33,11 @@ function TaskCommand() {
   //Initialize necessary command.
   var SubCommand;
   try {
-    SubCommand = require(subCommandMap[subCommand]);
+    SubCommand        = require(subCommandMap[subCommand]);
     this.SubCommand   = new SubCommand(tasks);
   } catch (err) {
-    throw `Could not initialize subcommand: ${subCommand}`;
+    var msg = `Could not initialize subcommand: ${subCommand}`;
+    console.log(msg, err); throw msg;
   }
 }
 

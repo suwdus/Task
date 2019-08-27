@@ -25,6 +25,36 @@ Util.prototype.initializeApplication = function(configValues) {
   });
 }
 
+Util.prototype.uploadData = function() {
+  const AWS             = require('aws-sdk');
+  const uuid            = require('uuid');
+  const credentialsFile = `${process.env.HOME}/.aws/credentials.json`;
+  const taskFile        = `${process.env.HOME}/.task/tasks.json`;
+
+  console.log('Uploading data to S3...');
+
+  try {
+    require(credentialsFile);
+  } catch(err) { throw `Please specify aws credentials in ${credentialsFile}` };
+
+  AWS.config.loadFromPath(credentialsFile);
+  //S3 object must be constructed after config load for creds to be captured.
+  const s3 = new AWS.S3({apiVersion: '2006-03-01'});
+
+  const params = {
+    Bucket: getS3BucketString(config.bucketLocation),
+    Body: JSON.stringify(require(config.taskFile)),
+    Key: require('path').basename(config.taskFile)
+  };
+
+  s3.putObject(params, function(err, data) {
+    if (err) {
+      console.log('Could not put object in bucket',err);
+    } else
+      console.log('Successfully put object in S3');
+  });
+}
+
 function createBucketAndUpdateConfig(config) {
   const AWS             = require('aws-sdk');
   const uuid            = require('uuid');
@@ -34,7 +64,7 @@ function createBucketAndUpdateConfig(config) {
   console.log('Initializing task, creating a new bucket in S3...');
 
   try {
-    require(credentialsFile); /* TODO: Prompt for access/secret access keys and create the file */
+    require(credentialsFile);
   } catch(err) { throw `Please specify aws credentials in ${credentialsFile}` };
 
   AWS.config.loadFromPath(credentialsFile);
@@ -123,8 +153,8 @@ Util.prototype.printTasks = function (tasks, filters) {
     taskList.forEach((task) => {
       data.push([
         task.id,
-        getAgeFromDate(task.creationDate),
-        (task.project) ? task.project : '/',
+        getAgeString(task.creationDate),
+        getProjectString(tasks, task),
         task.title,
         chalk.italic(getDateString(task.dueDate)),
         task.owner,
@@ -162,11 +192,24 @@ function getDateString(date) {
   return moment(date).tz(timezone).format("dddd, MMMM Do YYYY");
 }
 
-function getAgeFromDate(date) {
+function getAgeString(date) {
   var moment = require('moment');
   var thing = moment(date).diff(moment(), 'days');
   return thing.toString();
 }
 
+function getProjectString(tasks, task) {
+  if (task.project)
+    return `${task.project}(id:${task.id})`;
+  else if(tasks[task.parentTaskId])
+    return `${tasks[task.parentTaskId].project}(id:${tasks[task.parentTaskId].id})`;
+  else
+    return '/';
+}
 
+function getS3BucketString(bucketStr) {
+  return bucketStr
+          .replace('http://','')
+          .replace(/.s3.*/,'');
+}
 module.exports = Util;

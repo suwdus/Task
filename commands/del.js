@@ -10,13 +10,14 @@
 
 const Dao = require('../dao');
 
-function DeleteCommand(tasks) {
+function DeleteCommand(appData) {
+  this.appData = appData;
   this.dao = new Dao();
 }
 
-ListCommand.prototype.run = function (args) {
+DeleteCommand.prototype.run = function (args) {
 
-  this.dao.deleteTask(args);
+  this.dao.deleteTask(process.argv[3]);
 
 }
 

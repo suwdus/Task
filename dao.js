@@ -8,12 +8,9 @@
 
 const EMPTY_DATA_SCHEMA =
 {
-  allTasks: {},
-  activeTasks: {},
-  closedTasks: {},
-  backlogTasks: {},
-  archivedTasks: {},
-  projects: {}
+  allTasks: {},       /* All tasks which haven't been archived */
+  archivedTasks: {},  /* Un-permanently deleted tasks */
+  projects: []        /* An array of 'Project' task ids. */
 }
 
 
@@ -39,21 +36,16 @@ Dao.prototype.createTask = function(task, doS3Upload) {
   task.id               = id;
   appData.allTasks[id]  = task; /* Add task */
 
-  /* If this task represents a new project add it to the `project` collection. */
   if (task.project)
-    appData.projects[id] = task;
+    appData.projects.push(task.id);
 
   /* If this task should be a child of an existing task/project, relate them */
   if (task.parentTaskId) {
-    var parentTask = appData.projects[task.parentTaskId];
+    var parentTask = appData.allTasks[task.parentTaskId];
     if (parentTask)
-      addSubTask(appData, parentTask, task);
+      parentTask.subtasks.push(task.id);
     else
       throw `Parent project with id ${task.parentProjectId} does not exist`;
-  }
-
-  if (task.isActive) { /* Put task in collection of active tasks */
-    appData.activeTasks[id] = task;
   }
 
   const json = JSON.stringify(appData);
@@ -95,12 +87,20 @@ Dao.prototype.getAppData = function(filter) {
   return require(taskJsonPath);
 }
 
-Dao.prototype.updateTask = function() {
-  //TODO: Implement...
+Dao.prototype.updateTask = function(appData) {
+  const modData   = JSON.stringify(appData);
+  const taskFile  = config.taskFile;
+
+  require('fs').promises
+  .writeFile(taskFile, modData)
+  .then(() => console.log('Task successfully updated.'))
+  .catch((err) => console.log('Error updating task', err));
 }
 
-Dao.prototype.deleteTask = function() {
-  //TODO: Implement...
+Dao.prototype.deleteTask = function(taskId) {
+  var appData = this.getAppData();
+  delete appData.allTasks[taskId];
+  this.updateTask(appData);
 }
 
 Dao.prototype.completeTask = function(id) {
@@ -111,7 +111,6 @@ Dao.prototype.completeTask = function(id) {
   else
     throw `Task ${id} does not exist!!!`;
 
-  const config    = require(APP_CONFIG_PATH);
   const taskFile  = config.taskFile;
   const modData   = JSON.stringify(appData);
 

@@ -8,6 +8,7 @@ exports.SubCommandMap =
   'calendar': './commands/cal',
   'add': './commands/add',
   'update': './commands/update',
+  'upload': './commands/upload',
   'delete': './commands/del',
   'clear': './commands/clear',
 

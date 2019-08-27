@@ -10,7 +10,7 @@
 
 const Dao = require('../dao');
 
-function ClearCommand(tasks) {
+function ClearCommand(appData) {
   this.dao = new Dao();
 }
 

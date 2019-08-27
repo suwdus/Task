@@ -11,9 +11,10 @@ const Dao     = require('../dao');
 const Util    = require('../util');
 const moment  = require('moment-timezone');
 
-function AddCommand() {
-  this.dao  = new Dao();
-  this.util = new Util();
+function AddCommand(appData) {
+  this.appData  = appData;
+  this.dao      = new Dao();
+  this.util     = new Util();
 }
 
 AddCommand.prototype.run = function (args) {

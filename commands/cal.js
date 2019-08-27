@@ -13,13 +13,12 @@ function CalendarCommand(appData) {
 
 /* Returns a Promise containing the task calendar string. */
 CalendarCommand.prototype.run = function () {
-  const config = require(APP_CONFIG_PATH);
   const moment = require('moment-timezone');
 
   var taskListOutputPromise = this.util.printTasks(this.appData.allTasks);
 
   var calendarOutputPromise = new Promise( (resolve, reject) => {
-    var allTasks = Object.values(this.appData.allTasks); //TODO: Base filtering on user input...
+    var allTasks = Object.values(this.appData.allTasks);
     const childProcess  = require('child_process');
 
     var thisCal, prevCal, nextCal;
@@ -32,7 +31,7 @@ CalendarCommand.prototype.run = function () {
     eventEmitter.on('retrievedCal', () => {
       childProcessDoneCount++;
 
-      if (childProcessDoneCount == 3) {
+      if (childProcessDoneCount === 3) {
         resolve( /* Return formatted 3-Calendar display */
           buildCalendarOutput(
             allTasks,
