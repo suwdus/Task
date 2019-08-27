@@ -50,7 +50,8 @@ Dao.prototype.createTask = function(task, doS3Upload) {
     console.log('1 task created');
 
     if (doS3Upload) {
-      var s3Util = require('../utils/s3-util')();
+      var S3Util = require('../utils/s3-util');
+      var s3Util = new S3Util();
       s3Util.uploadData();
     }
   }).catch((err) => {

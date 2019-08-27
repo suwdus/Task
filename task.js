@@ -15,17 +15,15 @@ const Configurator  = require('./config/configurator');
 function TaskCommand() {
   this.dao = new Dao();
 
+  const configurator  = new Configurator();
+  const configPath    = configurator.configPath();
+  const subCommand    = process.argv[2];
+
   /*********** SETTING APP-SPECIFIC GLOBALS ***********/
-
-  var configurator = new Configurator();
-  const configPath = configurator.configPath();
-  const subCommand = process.argv[2];
-
   global.APP_CONFIG_PATH = configPath;
 
   if (subCommand !== 'init')
     global.config = require(configPath);
-
 
   /*********** END OF APP-SPECIFIC GLOBALS ***********/
 
@@ -33,7 +31,6 @@ function TaskCommand() {
 
   if (!subCommand) /* Set default subcommand */
     subCommand = 'cal';
-
 
   //Get/Set mandatory data necessary for all commands besides `init`.
   var tasks = this.dao.getAppData();
