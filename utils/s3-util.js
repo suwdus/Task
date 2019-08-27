@@ -7,7 +7,7 @@
  * @author Philip M. Turner
  *
  */
-const Dao       = require('../dao/dao');
+const Dao = require('../dao/dao');
 
 function S3Util() {
   this.dao = new Dao();

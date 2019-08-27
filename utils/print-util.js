@@ -1,8 +1,6 @@
 /**
  *
- * Description: Handles app configuration, uploading/retrieving
- * to dependent services.
- *
+ * Returns a Promise string for printing tasks to the console.
  *
  * @author Philip M. Turner
  *

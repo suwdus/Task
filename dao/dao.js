@@ -13,15 +13,11 @@ const EMPTY_DATA_SCHEMA =
   projects: []        /* An array of 'Project' task ids. */
 }
 
-function Dao() {}
+function Dao() {
+}
 
 Dao.prototype.createTask = function(task, doS3Upload) {
   const config = require(APP_CONFIG_PATH);
-
-  if (doS3Upload) {
-    //TODO: Implement...
-  }
-
   const appData = this.getAppData();
 
   //TODO: Validate data...
@@ -52,6 +48,11 @@ Dao.prototype.createTask = function(task, doS3Upload) {
   require('fs').promises.writeFile(config.taskFile, json)
   .then(() => {
     console.log('1 task created');
+
+    if (doS3Upload) {
+      var s3Util = require('../utils/s3-util')();
+      s3Util.uploadData();
+    }
   }).catch((err) => {
     console.log('Could not create task', err);
   });
