@@ -87,7 +87,6 @@ function createBucketAndUpdateConfig(config) {
       });
     }
   });
-
 }
 
 /* Write configuration information to file */
@@ -120,4 +119,5 @@ function getS3BucketString(bucketStr) {
           .replace('http://','')
           .replace(/.s3.*/,'');
 }
+
 module.exports = S3Util;

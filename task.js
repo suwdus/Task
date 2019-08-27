@@ -17,20 +17,23 @@ function TaskCommand() {
 
   /*********** SETTING APP-SPECIFIC GLOBALS ***********/
 
-  var configurator        = new Configurator();
-  const configPath        = configurator.configPath();
-  const subCommandMap     = configurator.userSubCommandMap();
-  var subCommand          = process.argv[2];
-  global.APP_CONFIG_PATH  = configPath;
+  var configurator = new Configurator();
+  const configPath = configurator.configPath();
+  const subCommand = process.argv[2];
+
+  global.APP_CONFIG_PATH = configPath;
+
+  if (subCommand !== 'init')
+    global.config = require(configPath);
+
+
+  /*********** END OF APP-SPECIFIC GLOBALS ***********/
+
+  const subCommandMap = configurator.userSubCommandMap();
 
   if (!subCommand) /* Set default subcommand */
     subCommand = 'cal';
 
-  if (subCommand !== 'init') {
-    global.config = require(configPath);
-  }
-
-  /*********** END OF APP-SPECIFIC GLOBALS ***********/
 
   //Get/Set mandatory data necessary for all commands besides `init`.
   var tasks = this.dao.getAppData();
@@ -38,8 +41,8 @@ function TaskCommand() {
   //Initialize necessary command.
   var SubCommand;
   try {
-    SubCommand        = require(subCommandMap[subCommand]);
-    this.SubCommand   = new SubCommand(tasks);
+    SubCommand      = require(subCommandMap[subCommand]);
+    this.SubCommand = new SubCommand(tasks);
   } catch (err) {
     var msg = `Could not initialize subcommand: ${subCommand}`;
     console.log(msg, err); throw msg;
