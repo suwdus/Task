@@ -4,18 +4,18 @@
  *
  */
 
-const Util = require('../util');
+const PrintUtil = require('../utils/print-util');
 
 function CalendarCommand(appData) {
-  this.appData  = appData;
-  this.util     = new Util();
+  this.appData    = appData;
+  this.printUtil  = new PrintUtil();
 }
 
 /* Returns a Promise containing the task calendar string. */
 CalendarCommand.prototype.run = function () {
   const moment = require('moment-timezone');
 
-  var taskListOutputPromise = this.util.printTasks(this.appData.allTasks);
+  var taskListOutputPromise = this.printUtil.printTasks(this.appData.allTasks);
 
   var calendarOutputPromise = new Promise( (resolve, reject) => {
     var allTasks = Object.values(this.appData.allTasks);

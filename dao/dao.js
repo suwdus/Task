@@ -13,7 +13,6 @@ const EMPTY_DATA_SCHEMA =
   projects: []        /* An array of 'Project' task ids. */
 }
 
-
 function Dao() {}
 
 Dao.prototype.createTask = function(task, doS3Upload) {
@@ -119,24 +118,6 @@ Dao.prototype.completeTask = function(id) {
   .then(() => console.log('1 task deleted.'))
   .catch((err) => console.log('Error deleting task', err));
 
-}
-
-function addSubTask(appData, parentTask, childTask) {
-
-  /**
-   *
-   * It's possible to add child tasks to tasks that are in
-   *  the `active`, `backlog`, and/or `all` collections.
-   *
-   */
-
-  if (appData.allTasks[parentTask.id])
-    appData.allTasks[parentTask.id].subTasks = childTask;
-
-  if (appData.activeTasks[parentTask.id])
-    appData.activeTasks[parentTask.id].subTasks = childTask;
-
-  //TODO: Deprecate copying of tasks into seperate collections.
 }
 
 module.exports = Dao;

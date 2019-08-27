@@ -8,16 +8,16 @@
 /* task init */
 
 
-const Util = require('../util');
+const S3Util = require('../utils/s3-util');
 
 function InitCommand() {
-  this.util   = new Util();
+  this.s3Util = new S3Util();
 }
 
 InitCommand.prototype.run = function (args) {
 
   validateInitInput(args);
-  this.util.initializeApplication(createConfig(args));
+  this.s3Util.initializeApplication(createConfig(args));
 
 }
 

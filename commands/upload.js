@@ -8,15 +8,15 @@
 /* task upload */
 
 
-const Util = require('../util');
+const S3Util = require('../utils/s3-util');
 
 function UploadCommand(tasks) {
-  this.util = new Util();
+  this.s3Util = new S3Util();
 }
 
 UploadCommand.prototype.run = function (args) {
 
-  this.util.uploadData();
+  this.s3Util.uploadData();
 
 }
 

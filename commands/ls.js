@@ -8,11 +8,11 @@
 /* task ls|l ? <filter> */
 
 
-const Util = require('../util');
+const PrintUtil = require('../utils/print-util');
 
 function ListCommand(appData) {
-  this.appData  = appData;
-  this.util     = new Util();
+  this.appData    = appData;
+  this.printUtil  = new PrintUtil();
 }
 
 ListCommand.prototype.run = function (args) {
@@ -24,7 +24,7 @@ ListCommand.prototype.run = function (args) {
   }
 
   //Prints all tasks.
-  var tasksPromise = this.util.printTasks(this.appData.allTasks, null);
+  var tasksPromise = this.printUtil.printTasks(this.appData.allTasks, null);
   tasksPromise.then((tasksOutput) => {
     console.log(tasksOutput);
   });

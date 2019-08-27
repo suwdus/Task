@@ -8,7 +8,7 @@
 /* task delete */
 
 
-const Dao = require('../dao');
+const Dao = require('../dao/dao');
 
 function DeleteCommand(appData) {
   this.appData = appData;
@@ -22,4 +22,3 @@ DeleteCommand.prototype.run = function (args) {
 }
 
 module.exports = DeleteCommand;
-

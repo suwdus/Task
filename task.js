@@ -9,17 +9,20 @@
  *
  */
 
-const Dao = require('./dao');
+const Dao = require('./dao/dao');
 
 function TaskCommand() {
   this.dao  = new Dao();
 
   /*********** SETTING APP-SPECIFIC GLOBALS ***********/
 
-  const configPath        = require('./config').configPath();
-  const subCommandMap     = require('./config').SubCommandMap;
-  const subCommand        = process.argv[2];
+  const configPath        = require('./config/config').configPath();
+  const subCommandMap     = require('./config/config').SubCommandMap;
+  var subCommand          = process.argv[2];
   global.APP_CONFIG_PATH  = configPath;
+
+  if (!subCommand) /* Set default subcommand */
+    subCommand = 'cal';
 
   if (subCommand !== 'init') {
     global.config = require(configPath);
