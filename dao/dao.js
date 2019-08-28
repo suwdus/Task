@@ -122,4 +122,4 @@ Dao.prototype.completeTask = function(id) {
 
 }
 
-module.exports = Dao;
+module.exports = new Dao();

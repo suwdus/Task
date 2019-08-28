@@ -7,12 +7,11 @@
 
 /* task add|a */
 
-const Dao     = require('../dao/dao');
 const moment  = require('moment-timezone');
 
 function AddCommand(appData) {
   this.appData  = appData;
-  this.dao      = new Dao();
+  this.dao      = require('../dao/');
 }
 
 AddCommand.prototype.run = function (args) {

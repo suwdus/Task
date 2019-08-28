@@ -8,10 +8,8 @@
 /* task clear */
 
 
-const Dao = require('../dao/dao');
-
 function ClearCommand(appData) {
-  this.dao = new Dao();
+  this.dao = require('../dao/');
 }
 
 ClearCommand.prototype.run = function(args) {

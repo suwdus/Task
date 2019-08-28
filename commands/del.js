@@ -8,11 +8,9 @@
 /* task delete */
 
 
-const Dao = require('../dao/dao');
-
 function DeleteCommand(appData) {
   this.appData = appData;
-  this.dao = new Dao();
+  this.dao = require('../dao/');
 }
 
 DeleteCommand.prototype.run = function (args) {

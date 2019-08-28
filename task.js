@@ -9,11 +9,10 @@
  *
  */
 
-const Dao           = require('./dao/dao');
 const Configurator  = require('./config/configurator');
 
 function TaskCommand() {
-  this.dao = new Dao();
+  this.dao = require('./dao/');
 
   const configurator  = new Configurator();
   const configPath    = configurator.configPath();
@@ -24,7 +23,6 @@ function TaskCommand() {
 
   if (subCommand !== 'init')
     global.config = require(configPath);
-
   /*********** END OF APP-SPECIFIC GLOBALS ***********/
 
   const subCommandMap = configurator.userSubCommandMap();

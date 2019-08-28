@@ -8,11 +8,9 @@
 /* task update 3 'We struck gold today' */
 
 
-const Dao = require('../dao/dao');
-
 function UpdateCommand(appData) {
   this.appData  = appData;
-  this.dao      = new Dao();
+  this.dao      = require('../dao/');
 }
 
 UpdateCommand.prototype.run = function (args) {

@@ -7,10 +7,9 @@
  * @author Philip M. Turner
  *
  */
-const Dao = require('../dao/dao');
 
 function S3Util() {
-  this.dao = new Dao();
+  this.dao = require('../dao/');
 }
 
 S3Util.prototype.initializeApplication = function(configValues) {
