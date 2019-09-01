@@ -16,7 +16,7 @@ function TaskCommand() {
 
   const configurator  = new Configurator();
   const configPath    = configurator.configPath();
-  const subCommand    = process.argv[2];
+  var   subCommand    = process.argv[2];
 
   /*********** SETTING APP-SPECIFIC GLOBALS ***********/
   global.APP_CONFIG_PATH = configPath;

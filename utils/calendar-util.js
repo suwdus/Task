@@ -1,11 +1,18 @@
+/**
+ *
+ * Externally callable methods return a Promise containing
+ * the task calendar string.
+ *
+ * @author Philip M. Turner
+ *
+ */
+
 function CalendarUtil() {
 }
 
-CalendarUtil.prototype.getCalendarView = function () {
-  var appData  = require('../dao').getAppData();
-
-  var calendarOutputPromise = new Promise( (resolve, reject) => {
-    var allTasks              = Object.values(appData.allTasks);
+/* Will return a Promise containing the task calendar. */
+CalendarUtil.prototype.getCalendarView = function (requestedTasks) {
+    var calendarOutputPromise = new Promise( (resolve, reject) => {
     var events                = require('events');
     var eventEmitter          = new events.EventEmitter();
     var childProcessDoneCount = 0;
@@ -17,7 +24,7 @@ CalendarUtil.prototype.getCalendarView = function () {
       if (childProcessDoneCount === 3) {
         resolve(
           buildCalendarOutput( /* Highlight dates & assemble calendar output */
-            allTasks,
+            requestedTasks,
             this.prevCal,
             this.thisCal,
             this.nextCal)
@@ -45,7 +52,7 @@ function spawnChildProcessesNotifyEmitter(
   const currentCalChildProcess  = require('child_process').spawn('cal');
   const nextCalChildProcess     = require('child_process').spawn('cal',[currentMonth+1,'2019']);
 
-  function relateChildProcessOutputToCalendar(calendar, month, childPrecess) {
+  function relateChildProcessCalOutputToThis(calendar, month, childPrecess) {
     childPrecess.stdout.on('data', (osCalStdin) => {
       _this[calendar] = {
         month:month,
@@ -55,9 +62,9 @@ function spawnChildProcessesNotifyEmitter(
     });
   }
 
-  relateChildProcessOutputToCalendar('prevCal', currentMonth-1, prevCalChildProcess);
-  relateChildProcessOutputToCalendar('thisCal', currentMonth, currentCalChildProcess);
-  relateChildProcessOutputToCalendar('nextCal', currentMonth+1, nextCalChildProcess);
+  relateChildProcessCalOutputToThis('prevCal', currentMonth-1, prevCalChildProcess);
+  relateChildProcessCalOutputToThis('thisCal', currentMonth, currentCalChildProcess);
+  relateChildProcessCalOutputToThis('nextCal', currentMonth+1, nextCalChildProcess);
 
 }
 
@@ -109,12 +116,10 @@ function highlight(tasks, cal) {
     }
   });
 
+  //Apply additional transformations...
+  calendarString = (cal.month === now.month()+1) ? highlightToday(calendarString, now) : calendarString;
   //Add the month header back to the calendar string...
   calendarString = headerStr + calendarString;
-
-  //Apply additional transformations...
-
-  calendarString = (cal.month === now.month()+1) ? highlightToday(calendarString, now) : calendarString;
 
   //TODO:Print current, due soon tasks to the console.
 
@@ -122,7 +127,6 @@ function highlight(tasks, cal) {
 }
 
 function highlightToday(calendarString, now) {
-
   return calendarString.replace(now.date().toString(),
     require('chalk').blue(now.date().toString()));
 }
