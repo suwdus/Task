@@ -120,6 +120,13 @@ function highlightDates(calendarString, calendarMonthNum, tasks) {
   var moment            = require('moment-timezone');
   const now             = require('moment-timezone')().tz(config.timezone);
   var todayHasTasksDue  = false;
+  const projectIds      = require('../dao').getProjects();
+  const projectColors   = ['magenta','green','yellow','purple','grey'];
+  var projectColorMap   = {};
+
+  for(var i = 0; i < projectIds.length; i++) {
+    projectColorMap[projectIds[i]] = projectColors[i];
+  }
 
   for (let task of tasks) {
     if (task.dueDate) {
@@ -131,7 +138,7 @@ function highlightDates(calendarString, calendarMonthNum, tasks) {
       else if (! highlightedDatesForMonths[taskDueDateMonth])
         highlightedDatesForMonths[taskDueDateMonth] = [];
       else if (highlightedDatesForMonths[taskDueDateMonth].includes(dueDate.date()))
-        continue;
+        continue; /* Important: If multiple project tasks due on same date only one color will show */
 
       const shouldHighlightDate = (calendarMonthNum === taskDueDateMonth) &&
         (highlightedDatesForMonths[taskDueDateMonth].includes(dueDate.date()) === false);
@@ -144,11 +151,15 @@ function highlightDates(calendarString, calendarMonthNum, tasks) {
         dateRegex = `${dueDate.date()} `;
         match = calendarString.match(dateRegex);
       }
-      const color = (
-                      calendarMonthNum === taskDueDateMonth
-                      && calendarMonthNum === now.month()+1
-                      && dueDate.date() === now.date()
-                    ) ? require('chalk').yellow : require('chalk').red;
+
+      var highlightToday = calendarMonthNum === taskDueDateMonth
+                            && calendarMonthNum === now.month()+1
+                            && dueDate.date() === now.date();
+
+      const projectColorHighlight = (task.parentTaskId) ?
+              require('chalk')[projectColorMap[task.parentTaskId]] : require('chalk').red;
+
+      const color = highlightToday ? require('chalk').yellow : projectColorHighlight;
 
       const highlightedCalendarString = calendarString.replace(
         match[0],

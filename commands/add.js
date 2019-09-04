@@ -13,6 +13,7 @@ const CalendarUtil = require('../utils/calendar-util');
 function AddCommand(appData) {
   this.appData      = appData;
   this.dao          = require('../dao/');
+  this.util         = require('../utils/command-util');
   this.calendarUtil = new CalendarUtil();
 }
 
@@ -24,25 +25,7 @@ AddCommand.prototype.run = async function (args) {
               console.log(calendarOutput);
             });
 
-  if (args.i) //Flag for interactive task creation...
-    await constructArgsInteractively(args)
-      .then( (constructedArgs) => args = constructedArgs)
-      .catch( (err) => {
-        console.log(err);
-        process.exit();
-      });
-
-  validateAddInput(args);
-  const doS3Upload = argValue(args.upload, args.u);
-
-  this.dao.createTask(createTaskFromArgs(args), doS3Upload);
-}
-
-function constructArgsInteractively(args) {
-
-  return new Promise( (resolve,reject) => {
-    var promptIdx = 0;
-
+  if (args.i) { //Flag for interactive task creation...
     const argPromptArr = [
       {argKey: 'title', prompt: 'What is the title of your task?: ', value: null},
       {argKey: 'upload', prompt: 'Should we upload your tasks to S3? (y/n): ', value: false},
@@ -51,40 +34,20 @@ function constructArgsInteractively(args) {
       {argKey: 'points', prompt: 'How many points does this task require?: ', value: 0}
     ];
 
-    const rl = require('readline').createInterface({
-      input: process.stdin,
-      output: process.stdout,
-      prompt: argPromptArr[promptIdx].prompt
-    });
-    rl.prompt(); /* Prompt the user with the first prompt in the list */
-
-    rl.on('line', (line) => {
-      /* Set the argument value based on user input */
-      argPromptArr[promptIdx++].value = getValueFromPrompt(line);
-      if (promptIdx === argPromptArr.length)
-        rl.close();
-      else {
-        rl.setPrompt(argPromptArr[promptIdx].prompt);
-        rl.prompt(); /* Prompt the user for next bit of input */
-      }
-    });
-
-    rl.on('close', () => {
-      argPromptArr.forEach( (argKeyValPair) => {
-        const key = argKeyValPair.argKey;
-        const val = argKeyValPair.value;
-        /* Set arg values based on interactive session */
-        args[key] = val;
+    await this.util.constructArgsInteractively(args, argPromptArr)
+      .then( (constructedArgs) => args = constructedArgs)
+      .catch( (err) => {
+        console.log(err);
+        process.exit();
       });
-      resolve(args);
-    });
+  }
 
-    rl.on('SIGINT', () => {
-      rl.pause();
-      reject('Signal interrupted, aborting task creation.');
-    });
-  });
+  validateAddInput(args);
+  const doS3Upload = argValue(args.upload, args.u);
+
+  this.dao.createTask(createTaskFromArgs(args), doS3Upload);
 }
+
 
 function validateAddInput(args) {
   if ( !args.title && !args.t ) {
@@ -137,20 +100,5 @@ function argValue(obj1, obj2) {
   return (obj1) ? obj1 : obj2;
 }
 
-function getValueFromPrompt(val) {
-  switch (val) {
-    case '':
-    case 'false':
-    case 'n':
-      return false;
-    case 'y':
-      return true;
-    default:
-      //Try to parse value as an int...
-      if (val.match(/^[0-9]+$/))
-        return Number.parseInt(val)
-      return val;
-  }
-}
 
 module.exports = AddCommand;

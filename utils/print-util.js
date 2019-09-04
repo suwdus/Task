@@ -119,9 +119,9 @@ function getAgeString(date) {
 
 function getProjectString(tasks, task) {
   if (task.project)
-    return `${task.project}(id:${task.id})`;
+    return `(id:${task.id})`;
   else if(tasks[task.parentTaskId])
-    return `${tasks[task.parentTaskId].project}(id:${tasks[task.parentTaskId].id})`;
+    return `(id:${tasks[task.parentTaskId].id})`;
   else
     return '/';
 }
@@ -132,6 +132,14 @@ function createTable(tableData) {
 
   const output = table(tableData, {
       border: getBorderCharacters(`void`),
+      /*
+      columns: {
+        2: {
+          width: 80,
+          wordWrap: true
+        }
+      },
+      */
       columnDefault: {
           paddingLeft: 0,
           paddingRight: 2

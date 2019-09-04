@@ -110,6 +110,11 @@ Dao.prototype.deleteTask = function(taskId) {
   this.updateTask(appData);
 }
 
+Dao.prototype.getProjects = function() {
+  var appData = this.getAppData();
+  return appData.projects;
+}
+
 Dao.prototype.completeTask = function(id) {
   var appData  = this.getAppData();
   var allTasks = appData.allTasks;
@@ -125,7 +130,7 @@ Dao.prototype.completeTask = function(id) {
     task.annotations.push({
       comment: '{bot}> task complete. mission complete. on to other work.',
       date: require('moment')(),
-      pointUpdate: '',
+      pointUpdate: '0 points left, task complete',
       updatedBy: 'bot'
     });
 
