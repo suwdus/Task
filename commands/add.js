@@ -101,6 +101,7 @@ function validateAddInput(args) {
 function createTaskFromArgs(args) {
   const title           = argValue(args.title, args.t);
   const creationDate    = moment();
+  const complete        = false;
   const completionDate  = null;
   /* TODO: Add N hours to time for date GMT to timezone date conversion.
    * If hours are included in dueDate arg do not manipulate the time.
@@ -119,6 +120,7 @@ function createTaskFromArgs(args) {
     title: title,
     creationDate: creationDate,
     dueDate: dueDate,
+    complete: complete,
     completionDate: completionDate,
     parentTaskId : parentTaskId,
     project: project,

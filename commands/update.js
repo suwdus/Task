@@ -26,12 +26,12 @@ UpdateCommand.prototype.run = function (args) {
   /* Make task modifications */
   task.points += pointUpdate;
 
-  task.annotations.push(createAnnotation(comment, pointUpdate));
+  task.annotations.push(createAnnotation(comment, pointUpdate, task.points));
 
-  this.dao.updateTask(this.appData);
+  this.dao.updateTask(task);
 }
 
-function createAnnotation(comment, pointUpdate) {
+function createAnnotation(comment, pointUpdate, pointsLeft) {
   return {
     comment: comment,
     date: require('moment-timezone')().tz(config.timezone),
@@ -40,8 +40,10 @@ function createAnnotation(comment, pointUpdate) {
   }
 }
 
-function getPointUpdateString(pointUpdate) {
-  if (pointUpdate >= 0)
+function getPointUpdateString(pointUpdate, pointsLeft) {
+  if (pointUpdate === 0)
+    return `Points remaining unchanged, ${pointsLeft} points left.`;
+  else if (pointUpdate > 0)
     return `Added ${pointUpdate} point(s) to task.`;
   else
     return `Subtracted ${-pointUpdate} point(s) to task`;

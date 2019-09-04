@@ -17,7 +17,6 @@ function Dao() {
 }
 
 Dao.prototype.createTask = function(task, doS3Upload) {
-  const config = require(APP_CONFIG_PATH);
   const appData = this.getAppData();
 
   //TODO: Validate data...
@@ -62,7 +61,6 @@ Dao.prototype.createTask = function(task, doS3Upload) {
 
 /* Delete tasks from ~/.tasks. */
 Dao.prototype.clearTasks = function() {
-  const config    = require(APP_CONFIG_PATH);
   const taskFile  = config.taskFile;
   const schema    = JSON.stringify(EMPTY_DATA_SCHEMA);
 
@@ -88,14 +86,22 @@ Dao.prototype.getAppData = function(filter) {
   return require(taskJsonPath);
 }
 
-Dao.prototype.updateTask = function(appData) {
+Dao.prototype.updateTask = async function(task) {
+  const taskId             = task.id;
+  const appData            = this.getAppData();
+  appData.allTasks[taskId] = task;
+
   const modData   = JSON.stringify(appData);
   const taskFile  = config.taskFile;
 
-  require('fs').promises
+  await require('fs').promises
   .writeFile(taskFile, modData)
   .then(() => console.log('Task successfully updated.'))
   .catch((err) => console.log('Error updating task', err));
+
+  if (task.points === 0)
+    this.completeTask(taskId);
+
 }
 
 Dao.prototype.deleteTask = function(taskId) {
@@ -105,20 +111,35 @@ Dao.prototype.deleteTask = function(taskId) {
 }
 
 Dao.prototype.completeTask = function(id) {
-  var appData   = this.getAppData();
-  var allTasks  = appData.allTasks;
-  if (allTasks[id])
-    delete allTasks[id];
-  else
+  var appData  = this.getAppData();
+  var allTasks = appData.allTasks;
+
+  if (!allTasks[id])
     throw `Task ${id} does not exist!!!`;
+
+  const task = allTasks[id];
+
+  if (task.points === 0) { /* Set completion fields on the task. */
+    task.complete = true;
+
+    task.annotations.push({
+      comment: '{bot}> task complete. mission complete. on to other work.',
+      date: require('moment')(),
+      pointUpdate: '',
+      updatedBy: 'bot'
+    });
+
+    task.completionDate = require('moment')();
+  }
 
   const taskFile  = config.taskFile;
   const modData   = JSON.stringify(appData);
 
+  /* Write modified data to disk */
   require('fs').promises
   .writeFile(taskFile, modData)
-  .then(() => console.log('1 task deleted.'))
-  .catch((err) => console.log('Error deleting task', err));
+  .then(() => console.log('task successfully completed.'))
+  .catch((err) => console.log('error completing task', err));
 
 }
 
