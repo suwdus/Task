@@ -97,27 +97,16 @@ function buildCalendarOutput(tasks, cal1, cal2, cal3) {
 }
 
 function highlight(tasks, cal) {
-  var calendarString  = cal.calendarString; //Will transform calendar string...
+
+  var calendarString    = cal.calendarString;
+  const firstLineEndIdx = calendarString.match('\n').index;
+  const headerStr       = calendarString.slice(0, firstLineEndIdx+1)
 
   //Remove month header in first line of calendar...
-  var idx         = calendarString.match('\n').index;
-  var headerStr   = calendarString.slice(0, idx+1)
-  calendarString  = calendarString.slice(idx+1, calendarString.length);
-  var moment      = require('moment-timezone');
-  const now       = moment().tz(config.timezone);
+  calendarString  = calendarString.slice(firstLineEndIdx+1, calendarString.length);
+  //Highlight today, task due dates
+  calendarString  = highlightDates(calendarString, cal.month, tasks);
 
-  tasks.forEach((task) => {
-    if (task.dueDate) {
-      const dueDate       = moment(task.dueDate).tz(config.timezone);
-      const dueDateMonth  = dueDate.month()+1;
-
-      calendarString = (cal.month === dueDateMonth) ?
-        highlightTaskDueDate(calendarString, dueDate) : calendarString;
-    }
-  });
-
-  //Apply additional transformations...
-  calendarString = (cal.month === now.month()+1) ? highlightToday(calendarString, now) : calendarString;
   //Add the month header back to the calendar string...
   calendarString = headerStr + calendarString;
 
@@ -126,13 +115,51 @@ function highlight(tasks, cal) {
   return calendarString;
 }
 
-function highlightToday(calendarString, now) {
-  return calendarString.replace(now.date().toString(),
-    require('chalk').blue(now.date().toString()));
-}
+function highlightDates(calendarString, calendarMonthNum, tasks) {
+  var highlightedDatesForMonths = {};
+  var moment            = require('moment-timezone');
+  const now             = require('moment-timezone')().tz(config.timezone);
+  var todayHasTasksDue  = false;
 
-function highlightTaskDueDate(calendarString, dueDate) {
-  return calendarString.replace(`${dueDate.date()}`,`${require('chalk').red(dueDate.date())}`);
-}
+  for (let task of tasks) {
+    if (task.dueDate) {
+      const dueDate           = moment(task.dueDate).tz(config.timezone);
+      const taskDueDateMonth  = dueDate.month()+1;
 
+      if (taskDueDateMonth !== calendarMonthNum)
+        continue;
+      else if (! highlightedDatesForMonths[taskDueDateMonth])
+        highlightedDatesForMonths[taskDueDateMonth] = [];
+      else if (highlightedDatesForMonths[taskDueDateMonth].includes(dueDate.date()))
+        continue;
+
+      const shouldHighlightDate = (calendarMonthNum === taskDueDateMonth) &&
+        (highlightedDatesForMonths[taskDueDateMonth].includes(dueDate.date()) === false);
+
+      var dateRegex = `( | \n)${dueDate.date()}( |\n)`;
+      var match     = calendarString.match(dateRegex, 'g');
+
+      if (!match) {
+        //Adjust regex to account for dates which begin the string.
+        dateRegex = `${dueDate.date()} `;
+        match = calendarString.match(dateRegex);
+      }
+      const color = (
+                      calendarMonthNum === taskDueDateMonth
+                      && calendarMonthNum === now.month()+1
+                      && dueDate.date() === now.date()
+                    ) ? require('chalk').yellow : require('chalk').red;
+
+      const highlightedCalendarString = calendarString.replace(
+        match[0],
+        `${color(match[0])}`);
+
+      highlightedDatesForMonths[taskDueDateMonth].push(dueDate.date());
+
+      calendarString = (shouldHighlightDate) ? highlightedCalendarString : calendarString;
+    }
+  }
+
+  return calendarString;
+}
 module.exports = CalendarUtil;

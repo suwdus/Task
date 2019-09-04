@@ -21,7 +21,7 @@ Dao.prototype.createTask = function(task, doS3Upload) {
   const appData = this.getAppData();
 
   //TODO: Validate data...
-  var id = 1;
+  var id;
   if (Object.keys(appData.allTasks).length > 0) { /*Get next id */
     var _ = require('underscore');
     id = _.max(Object.values(appData.allTasks),

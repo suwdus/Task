@@ -92,9 +92,12 @@ PrintUtil.prototype.printTask = function(task) {
     ]);
   });
 
+  var generalTableOut, annoationTableOut = '';
+  if (generalTaskData.length > 0)
+    generalTableOut   = createTable(generalTaskData);
 
-  var generalTableOut   = createTable(generalTaskData);
-  var annoationTableOut = createTable(annotationTaskData);
+  if (annotationTaskData.length > 0)
+    annoationTableOut = createTable(annotationTaskData);
 
   console.log(`${generalTableOut}\n\nUpdates:\n\n${annoationTableOut}`);
 }
