@@ -7,7 +7,6 @@
 
 /* task clear */
 
-
 function ClearCommand(appData) {
   this.dao = require('../dao/');
 }

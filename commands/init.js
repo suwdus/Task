@@ -10,7 +10,9 @@
 
 const S3Util = require('../utils/s3-util');
 
-function InitCommand() {
+/* Note: appData and config will be undefined for this command */
+
+function InitCommand(appData) {
   this.s3Util = new S3Util();
 }
 

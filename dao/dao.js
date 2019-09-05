@@ -20,7 +20,8 @@ Dao.prototype.createTask = function(task, doS3Upload) {
   const appData = this.getAppData();
 
   //TODO: Validate data...
-  var id;
+
+  var id = 0; /* id will be `0` when adding the first task */
   if (Object.keys(appData.allTasks).length > 0) { /*Get next id */
     var _ = require('underscore');
     id = _.max(Object.values(appData.allTasks),
@@ -61,12 +62,11 @@ Dao.prototype.createTask = function(task, doS3Upload) {
 
 /* Delete tasks from ~/.tasks. */
 Dao.prototype.clearTasks = function() {
-  const taskFile  = config.taskFile;
-  const schema    = JSON.stringify(EMPTY_DATA_SCHEMA);
+  const schema = JSON.stringify(EMPTY_DATA_SCHEMA);
 
   require('fs').promises
-  .writeFile(taskFile, schema)
-  .then(() => console.log('Successfully cleared all tasks from ' + taskFile))
+  .writeFile(config.taskFile, schema)
+  .then(() => console.log('Successfully cleared all tasks from ' + config.taskFile))
   .catch((err) => console.log('Error writing data to task file', err));
 }
 
@@ -82,37 +82,99 @@ Dao.prototype.clearTasks = function() {
  *
  */
 Dao.prototype.getAppData = function(filter) {
-  const taskJsonPath = require(APP_CONFIG_PATH).taskFile;
+  const taskJsonPath = config.taskFile;
   return require(taskJsonPath);
 }
 
-Dao.prototype.updateTask = async function(task) {
-  const taskId             = task.id;
-  const appData            = this.getAppData();
-  appData.allTasks[taskId] = task;
+Dao.prototype.getAllTasks = function() {
+  return Object.values(this.getAppData().allTasks);
+}
 
-  const modData   = JSON.stringify(appData);
-  const taskFile  = config.taskFile;
+Dao.prototype.updateTask = async function(update) {
+
+  const appDataModel = this.getAppData();
+  const taskModel    = appDataModel.allTasks[update.taskId];
+  /* Task ID of the task we're modifying */
+  const taskId       = taskModel.id;
+
+  /* Make task model modifications */
+  taskModel.points += (!update.pointUpdate) ? 0 : update.pointUpdate;
+  taskModel.annotations.push(update.annotation);
+
+  if (update.shouldRelateParent) {
+    const parentTaskModel = appDataModel.allTasks[update.relatedParentTaskId];
+    //Add task as child of parent task model subtasks if not already present...
+    if (! parentTaskModel.subtasks.includes(taskModel.id))
+      parentTaskModel.subtasks.push(taskModel.id);
+    //Set parent id on this task model...
+    taskModel.parentTaskId = parentTaskModel.id;
+  }
+
+  const modifiedData = JSON.stringify(appDataModel);
 
   await require('fs').promises
-  .writeFile(taskFile, modData)
+  .writeFile(config.taskFile, modifiedData)
   .then(() => console.log('Task successfully updated.'))
   .catch((err) => console.log('Error updating task', err));
 
-  if (task.points === 0)
+  if (taskModel.points === 0)
     this.completeTask(taskId);
+}
 
+Dao.prototype.deleteTasks = function(taskIds) {
+  taskIds.forEach( async (taskId) => {
+    await this.deleteTask(taskId);
+  });
 }
 
 Dao.prototype.deleteTask = function(taskId) {
-  var appData = this.getAppData();
-  delete appData.allTasks[taskId];
-  this.updateTask(appData);
+
+  return new Promise( (resolve, reject) => {
+    var appDataModel              = this.getAppData();
+    var shouldDeleteSubtasks = true; //TODO: Make configurable.
+    const task = appDataModel.allTasks[taskId];
+    if (! task)
+      throw `task with id ${taskId} does not exist!!`;
+
+    const deleteRecursive = (task) => {
+      if (! task || !appDataModel.allTasks[task.id]) {
+        console.log(`Task undefined or unpresent in appDataModel, returning`); return;
+      }
+      if (shouldDeleteSubtasks && task.subtasks.length > 0) {
+        console.log(`shouldDeleteSubtasks flag is true, deleteing subtasks...`);
+        task.subtasks.forEach((subtaskId) => {
+          deleteRecursive(appDataModel.allTasks[subtaskId]);
+        });
+      }
+      /* If task is a project , remove it from the project list */
+      if (task.project && appDataModel.projects.includes(task.id)) {
+        console.log(`Removing task with id ${removedTaskId} removed from project list`);
+        const idx           = appDataModel.projects.indexOf(task.Id);
+        const removedTaskId = appDataModel.projects.pop(idx);
+      }
+
+      console.log(`Removing task with id ${task.id}`);
+
+      delete appDataModel.allTasks[task.id];
+    }
+
+    deleteRecursive(task);
+
+    require('fs').promises
+    .writeFile(config.taskFile, JSON.stringify(appDataModel))
+    .then(() => {
+      console.log('Task successfully deleted.')
+      resolve();
+    })
+    .catch((err) => {
+      console.log('Error deleting task', err)
+      reject();
+    });
+  });
 }
 
 Dao.prototype.getProjects = function() {
-  var appData = this.getAppData();
-  return appData.projects;
+  return this.getAppData().projects;
 }
 
 Dao.prototype.completeTask = function(id) {
@@ -137,12 +199,11 @@ Dao.prototype.completeTask = function(id) {
     task.completionDate = require('moment')();
   }
 
-  const taskFile  = config.taskFile;
   const modData   = JSON.stringify(appData);
 
   /* Write modified data to disk */
   require('fs').promises
-  .writeFile(taskFile, modData)
+  .writeFile(config.taskFile, modData)
   .then(() => console.log('task successfully completed.'))
   .catch((err) => console.log('error completing task', err));
 

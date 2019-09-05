@@ -31,7 +31,8 @@ function TaskCommand() {
     subCommand = 'cal';
 
   //Get/Set mandatory data necessary for all commands besides `init`.
-  var tasks = this.dao.getAppData();
+  if (true) /* TODO: Temporary flag due to issues deleting multiple tasks. */
+    var tasks = this.dao.getAppData();
 
   //Initialize necessary command.
   var SubCommand;

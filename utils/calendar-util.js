@@ -96,35 +96,34 @@ function buildCalendarOutput(tasks, cal1, cal2, cal3) {
   return calendarAll;
 }
 
+/* Removes calendar header before calling highlightDates */
 function highlight(tasks, cal) {
 
-  var calendarString    = cal.calendarString;
-  const firstLineEndIdx = calendarString.match('\n').index;
-  const headerStr       = calendarString.slice(0, firstLineEndIdx+1)
+  var calendarString = cal.calendarString;
+  const headerEndIdx = calendarString.match('\n').index;
+  const headerStr    = calendarString.slice(0, headerEndIdx+1)
 
   //Remove month header in first line of calendar...
-  calendarString  = calendarString.slice(firstLineEndIdx+1, calendarString.length);
-  //Highlight today, task due dates
-  calendarString  = highlightDates(calendarString, cal.month, tasks);
-
+  calendarString = calendarString.slice(headerEndIdx+1, calendarString.length);
+  //Highlight today & task due dates
+  calendarString = highlightDates(calendarString, cal.month, tasks);
   //Add the month header back to the calendar string...
   calendarString = headerStr + calendarString;
-
-  //TODO:Print current, due soon tasks to the console.
 
   return calendarString;
 }
 
+/* Highlight dates for a single calendar */
 function highlightDates(calendarString, calendarMonthNum, tasks) {
-  var highlightedDatesForMonths = {};
-  var moment            = require('moment-timezone');
-  const now             = require('moment-timezone')().tz(config.timezone);
-  var todayHasTasksDue  = false;
+  const highlightedDatesForMonth = [];
   const projectIds      = require('../dao').getProjects();
+  const moment          = require('moment-timezone');
+  const now             = moment().tz(config.timezone);
   const projectColors   = ['magenta','green','yellow','purple','grey'];
   var projectColorMap   = {};
 
-  for(var i = 0; i < projectIds.length; i++) {
+  /* Assign each project to a color from the array */
+  for (var i = 0; i < projectIds.length; i++) {
     projectColorMap[projectIds[i]] = projectColors[i];
   }
 
@@ -133,15 +132,10 @@ function highlightDates(calendarString, calendarMonthNum, tasks) {
       const dueDate           = moment(task.dueDate).tz(config.timezone);
       const taskDueDateMonth  = dueDate.month()+1;
 
-      if (taskDueDateMonth !== calendarMonthNum)
+      if (taskDueDateMonth !== calendarMonthNum) /* task date belongs to different calendar */
         continue;
-      else if (! highlightedDatesForMonths[taskDueDateMonth])
-        highlightedDatesForMonths[taskDueDateMonth] = [];
-      else if (highlightedDatesForMonths[taskDueDateMonth].includes(dueDate.date()))
+      else if (highlightedDatesForMonth.includes(dueDate.date())) /* calendar date already highlighted for calendar */
         continue; /* Important: If multiple project tasks due on same date only one color will show */
-
-      const shouldHighlightDate = (calendarMonthNum === taskDueDateMonth) &&
-        (highlightedDatesForMonths[taskDueDateMonth].includes(dueDate.date()) === false);
 
       var dateRegex = `( | \n)${dueDate.date()}( |\n)`;
       var match     = calendarString.match(dateRegex, 'g');
@@ -152,25 +146,46 @@ function highlightDates(calendarString, calendarMonthNum, tasks) {
         match = calendarString.match(dateRegex);
       }
 
-      var highlightToday = calendarMonthNum === taskDueDateMonth
-                            && calendarMonthNum === now.month()+1
-                            && dueDate.date() === now.date();
+      const isTaskDueDateToday = calendarMonthNum === now.month()+1    //Calendar is related to this month
+                              && taskDueDateMonth === calendarMonthNum //Task is also related to this month (this is a double check)
+                              && dueDate.date() === now.date();        //Task is due today
 
-      const projectColorHighlight = (task.parentTaskId) ?
-              require('chalk')[projectColorMap[task.parentTaskId]] : require('chalk').red;
+      const thisIdOrProjectId = (task.project) ? task.id : task.parentTaskId;
+      const projectColorHighlightOrDefault = (thisIdOrProjectId) ?
+              require('chalk')[projectColorMap[thisIdOrProjectId]] : require('chalk').red;
 
-      const color = highlightToday ? require('chalk').yellow : projectColorHighlight;
+      const colorize = isTaskDueDateToday ? require('chalk').yellow : projectColorHighlightOrDefault;
 
       const highlightedCalendarString = calendarString.replace(
         match[0],
-        `${color(match[0])}`);
+        colorize(match[0])
+      );
 
-      highlightedDatesForMonths[taskDueDateMonth].push(dueDate.date());
+      highlightedDatesForMonth.push(dueDate.date());
 
-      calendarString = (shouldHighlightDate) ? highlightedCalendarString : calendarString;
+      calendarString = highlightedCalendarString;
     }
   }
 
+  //If we still haven't highlighted today's date...
+  if (calendarMonthNum === now.month()+1
+    && highlightedDatesForMonth.includes(now.date()) === false) {
+
+    var dateRegex = `( | \n)${now.date()}( |\n)`;
+    var match     = calendarString.match(dateRegex, 'g');
+
+    if (!match) {
+      //Adjust regex to account for dates which begin the string.
+      dateRegex = `${now.date()} `;
+      match = calendarString.match(dateRegex);
+    }
+
+    calendarString = calendarString.replace(
+      match[0],
+      require('chalk').blue(match[0])
+    );
+  }
   return calendarString;
 }
+
 module.exports = CalendarUtil;

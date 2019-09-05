@@ -15,62 +15,59 @@ function UpdateCommand(appData) {
 }
 
 UpdateCommand.prototype.run = async function (args) {
+  if (Object.keys(this.appData.allTasks).length === 0) {
+    console.log('No tasks present to update!');
+    process.exit();
+  }
 
   if (args.i) { //Flag for interactive task creation...
     const argPromptArr = [
       {argKey: 'id', prompt: 'What is the id of the task you want to update?: ', value: null},
       {argKey: 'comment', prompt: 'Please type your comment: ', value: null},
       {argKey: 'pointUpdate', prompt: '+/- N points? i.e (-2): ', value: null},
-      {argKey: 'project', prompt: 'Would you like to relate this to a project? (y/n): ', value: false}
+      {argKey: 'shouldRelateParent', prompt: 'Would you like to relate this to a parent task? (y/n): ', value: false}
     ];
 
     await this.util.constructArgsInteractively(args, argPromptArr)
       .then( (constructedArgs) => args = constructedArgs);
   }
 
-  if (args.project) { /* User would like to relate this task to a project... */
-    const argPromptArr = [
-      {argKey: 'relatedProjectId', prompt: 'What is the id of the parent task?: ', value: null}
+  if (args.shouldRelateParent) { /* User would like to relate this task to a parent task... */
+    const relateParentPrompt = [
+      {argKey: 'relatedParentTaskId', prompt: 'What is the id of the parent task?: ', value: null}
     ];
-
-    /* Log projects to the console for the user's selection */
-    console.log(this.dao.getProjects());
-
-    await this.util.constructArgsInteractively(args, argPromptArr)
+    printProjects();
+    await this.util.constructArgsInteractively(args, relateParentPrompt)
       .then( (constructedArgs) => args = constructedArgs);
   }
 
+  this.dao.updateTask(buildUpdateModel(args));
+}
 
-
-  //Construct data for task update...
-  const taskId        = (args.i) ? args.id : process.argv[3];
-  const comment       = (args.i) ? args.comment : process.argv[4];
-  const relateProject = args.project;
-
-  var pointUpdate   = (args.i) ? args.pointUpdate : Number(process.argv[5]);
+//TODO: Put in ./builders/
+function buildUpdateModel(args) {
+  const taskId             = (args.i) ? args.id : process.argv[3];
+  const task               = require('../dao').getAllTasks()[taskId];
+  const comment            = (args.i) ? args.comment : process.argv[4];
+  const shouldRelateParent = args.shouldRelateParent;
+  var pointUpdate          = (args.i) ? args.pointUpdate : Number(process.argv[5]);
 
   if (isNaN(pointUpdate))
     pointUpdate = null;
 
-  var task = this.appData.allTasks[taskId];
-
-  /* Make task modifications */
-  task.points += (!pointUpdate) ? 0 : pointUpdate;
-
-  task.annotations.push(createAnnotation(comment, pointUpdate, task.points));
-
-  if (relateProject) {
-    var parentTask = this.appData.allTasks[args.relatedProjectId];
-    parentTask.subtasks.push(task.id);
-    this.dao.updateTask(parentTask); /* Update parent task */
-    task.parentTaskId = parentTask.id;
-  }
-
-  this.dao.updateTask(task);
+  const updateModel = {
+    taskId: taskId,
+    comment: comment,
+    pointUpdate: pointUpdate,
+    shouldRelateParent: args.shouldRelateParent,
+    relatedParentTaskId: args.relatedParentTaskId,
+    annotation: buildAnnotationModel(comment, pointUpdate, task.points)
+  };
+  return updateModel;
 }
 
-/* TODO: Utilize single object in params */
-function createAnnotation(comment, pointUpdate, pointsLeft) {
+//TODO: Put in ./builders/
+function buildAnnotationModel(comment, pointUpdate, pointsLeft) {
   return {
     comment: comment,
     date: require('moment-timezone')().tz(config.timezone),
@@ -79,6 +76,7 @@ function createAnnotation(comment, pointUpdate, pointsLeft) {
   }
 }
 
+//TODO: Put in ./builders/
 function getPointUpdateString(pointUpdate, pointsLeft) {
   if (pointUpdate === 0 || pointUpdate === null)
     return `Points remaining unchanged. (${pointsLeft} points left.)`;
@@ -87,5 +85,14 @@ function getPointUpdateString(pointUpdate, pointsLeft) {
   else
     return `Subtracted ${-pointUpdate} point(s) to task. (${pointsLeft} points left.)`;
 }
+
+function printProjects() {
+  const appData = require('../dao').getAppData();
+  appData.projects.forEach((projectId) => {
+    const project = appData.allTasks[projectId];
+    console.log(`${project.title} (${project.id})`);
+  });
+}
+
 
 module.exports = UpdateCommand;

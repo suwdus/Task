@@ -16,10 +16,9 @@ function CalendarCommand(appData) {
 /* Returns a Promise containing the task calendar string. */
 CalendarCommand.prototype.run = function () {
   const moment = require('moment-timezone');
-  const calendarTasks = Object.values(require('../dao').getAppData().allTasks);
 
   var taskListOutputPromise = this.printUtil.printTasks(this.appData.allTasks);
-  var calendarOutputPromise = this.calendarUtil.getCalendarView(calendarTasks);
+  var calendarOutputPromise = this.calendarUtil.getCalendarView(require('../dao').getAllTasks());
 
   calendarOutputPromise
   .then((calendarOutput) => {

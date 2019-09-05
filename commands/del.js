@@ -14,9 +14,8 @@ function DeleteCommand(appData) {
 }
 
 DeleteCommand.prototype.run = function (args) {
-
-  this.dao.deleteTask(process.argv[3]);
-
+  const tasksToDelete = process.argv.slice(3);
+  this.dao.deleteTasks(tasksToDelete);
 }
 
 module.exports = DeleteCommand;
