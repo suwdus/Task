@@ -13,62 +13,14 @@ function CalendarUtil() {
 /* Will return a Promise containing the task calendar. */
 CalendarUtil.prototype.getCalendarView = function (requestedTasks) {
     var calendarOutputPromise = new Promise( (resolve, reject) => {
-    var events                = require('events');
-    var eventEmitter          = new events.EventEmitter();
-    var childProcessDoneCount = 0;
-
-    /* Prepare emitter to receive events */
-    eventEmitter.on('retrievedCal', () => {
-      childProcessDoneCount++;
-
-      if (childProcessDoneCount === 3) {
-        resolve(
-          buildCalendarOutput( /* Highlight dates & assemble calendar output */
-            requestedTasks,
-            this.prevCal,
-            this.thisCal,
-            this.nextCal)
-        );
-      }
-    });
-
-    /* Spawn child processes to retrieve each calendar and notify the emitter */
-    spawnChildProcessesNotifyEmitter(eventEmitter, this);
+      var tasks = require('../dao').getAllTasks();
+      var output = buildCalendarOutput(tasks);
+      resolve(output);
   });
-
   return calendarOutputPromise;
-
 }
 
-/* ======================== Helpers ======================== */
-function spawnChildProcessesNotifyEmitter(
-            eventEmitter, _this) {
-  //Use default os `cal` program to build calendar strings...
-  const now           = new Date();
-  const currentMonth  = now.getMonth()+1; //date month indexed from 0.
-  const currentYear   = now.getYear();
-
-  const prevCalChildProcess     = require('child_process').spawn('cal', [currentMonth-1,'2019']);
-  const currentCalChildProcess  = require('child_process').spawn('cal');
-  const nextCalChildProcess     = require('child_process').spawn('cal',[currentMonth+1,'2019']);
-
-  function relateChildProcessCalOutputToThis(calendar, month, childPrecess) {
-    childPrecess.stdout.on('data', (osCalStdin) => {
-      _this[calendar] = {
-        month:month,
-        calendarString: osCalStdin.toString()
-      };
-      eventEmitter.emit('retrievedCal');
-    });
-  }
-
-  relateChildProcessCalOutputToThis('prevCal', currentMonth-1, prevCalChildProcess);
-  relateChildProcessCalOutputToThis('thisCal', currentMonth, currentCalChildProcess);
-  relateChildProcessCalOutputToThis('nextCal', currentMonth+1, nextCalChildProcess);
-
-}
-
-function buildCalendarOutput(tasks, cal1, cal2, cal3) {
+function buildCalendarOutput(tasks) {
   const chalk  = require('chalk');
 
   const legend = `Legend: ` +
@@ -82,42 +34,43 @@ function buildCalendarOutput(tasks, cal1, cal2, cal3) {
 
   var calendarString = '';
 
+  //Months to construct...
+  const thisMonthNum = require('moment')().month()+1;
+  const prevMonthNum = thisMonthNum-1;
+  const nextMonthNum = thisMonthNum+1;
    /* Highlight calendar dates according to tasks and split on `\n` */
-  const splitCal1 = highlight(tasks, cal1).split('\n');
-  const splitCal2 = highlight(tasks, cal2).split('\n');
-  const splitCal3 = highlight(tasks, cal3).split('\n');
+  const splitCal1 = highlight(tasks, prevMonthNum).split('\n');
+  const splitCal2 = highlight(tasks, thisMonthNum).split('\n');
+  const splitCal3 = highlight(tasks, nextMonthNum).split('\n');
 
-  /* Combine calendars, force 20 character calendar width per calendar. */
-  var calendarAll = ''; const len = splitCal1.length;
-  for (var j = 0; j < len; j++)
+  /* Combine calendars */
+  var calendarAll = ''; const len = 6;
+  for (var j = 0; j < len; j++) {
     calendarAll += `\n${splitCal1[j].padEnd(20)}  ${splitCal2[j].padEnd(20)}  ${splitCal3[j].padEnd(20)}`;
+  }
   calendarAll += `\n${legend}\n`;
 
   return calendarAll;
 }
 
-/* Removes calendar header before calling highlightDates */
-function highlight(tasks, cal) {
+function highlight(tasks, calendarMonthNum) {
+  const moment           = require('moment-timezone');
+  const monthBeginMoment = moment().month(calendarMonthNum-1);
+  const monthEndMoment   = monthBeginMoment.endOf('month');
 
-  var calendarString = cal.calendarString;
-  const headerEndIdx = calendarString.match('\n').index;
-  const headerStr    = calendarString.slice(0, headerEndIdx+1)
+  const daysInMonth      = monthEndMoment.date();
+  const dayOfWeekMonthStartsOn = monthBeginMoment.isoWeekday();
+  const dayOfWeekMonthEndsOn   = monthEndMoment.isoWeekday();
 
-  //Remove month header in first line of calendar...
-  calendarString = calendarString.slice(headerEndIdx+1, calendarString.length);
-  //Highlight today & task due dates
-  calendarString = highlightDates(calendarString, cal.month, tasks);
-  //Add the month header back to the calendar string...
-  calendarString = headerStr + calendarString;
+  //Construct array of dates...
+  var dateSlots = [];
+  for(var d = 1; d <= daysInMonth; d++) {
+    dateSlots.push(`${d}`.padStart(2));
+  }
+  //Highlight dates according to task due dates...
 
-  return calendarString;
-}
-
-/* Highlight dates for a single calendar */
-function highlightDates(calendarString, calendarMonthNum, tasks) {
   const highlightedDatesForMonth = [];
   const projectIds      = require('../dao').getProjects();
-  const moment          = require('moment-timezone');
   const now             = moment().tz(config.timezone);
   const projectColors   = ['magenta','green','yellow','purple','grey'];
   var projectColorMap   = {};
@@ -137,14 +90,11 @@ function highlightDates(calendarString, calendarMonthNum, tasks) {
       else if (highlightedDatesForMonth.includes(dueDate.date())) /* calendar date already highlighted for calendar */
         continue; /* Important: If multiple project tasks due on same date only one color will show */
 
-      var dateRegex = `( | \n)${dueDate.date()}( |\n)`;
-      var match     = calendarString.match(dateRegex, 'g');
-
-      if (!match) {
-        //Adjust regex to account for dates which begin the string.
-        dateRegex = `${dueDate.date()} `;
-        match = calendarString.match(dateRegex);
-      }
+      const date  = dueDate.date();
+      const dateIndex = date-1;
+      const regex = /[0-9]+/;
+      const dateSlotString = dateSlots[dateIndex];
+      const match = dateSlotString.match(regex);
 
       const isTaskDueDateToday = calendarMonthNum === now.month()+1    //Calendar is related to this month
                               && taskDueDateMonth === calendarMonthNum //Task is also related to this month (this is a double check)
@@ -156,14 +106,12 @@ function highlightDates(calendarString, calendarMonthNum, tasks) {
 
       const colorize = isTaskDueDateToday ? require('chalk').yellow : projectColorHighlightOrDefault;
 
-      const highlightedCalendarString = calendarString.replace(
-        match[0],
-        colorize(match[0])
-      );
+      if(match)
+        dateSlots[dateIndex] = dateSlotString.replace(regex, colorize(match[0]));
+      else
+        console.log('no match');
 
       highlightedDatesForMonth.push(dueDate.date());
-
-      calendarString = highlightedCalendarString;
     }
   }
 
@@ -171,21 +119,35 @@ function highlightDates(calendarString, calendarMonthNum, tasks) {
   if (calendarMonthNum === now.month()+1
     && highlightedDatesForMonth.includes(now.date()) === false) {
 
-    var dateRegex = `( | \n)${now.date()}( |\n)`;
-    var match     = calendarString.match(dateRegex, 'g');
+    const regex = /[0-9]+/;
+    const dateIndex = now.date()-1;
+    const dateSlotString = dateSlots[dateIndex];
+    const match = dateSlotString.match(regex);
 
-    if (!match) {
-      //Adjust regex to account for dates which begin the string.
-      dateRegex = `${now.date()} `;
-      match = calendarString.match(dateRegex);
-    }
-
-    calendarString = calendarString.replace(
-      match[0],
-      require('chalk').blue(match[0])
-    );
+    dateSlots[dateIndex] = dateSlotString.replace(regex, require('chalk').blue(match[0]));
   }
-  return calendarString;
-}
 
+
+  //Now we add slots to the beginning according to the first day.
+  for (var k = 1; k < dayOfWeekMonthStartsOn-1; k++) {
+    dateSlots.unshift(''.padStart(2));
+  }
+
+
+  for (var l= 1; l < 7 - dayOfWeekMonthEndsOn; l++) {
+    dateSlots.push(''.padStart(2));
+  }
+
+  //Assmeble the date string...
+  var out = '';
+  for (var j = 1; j <= dateSlots.length; j++) {
+    const adjacentStr = (j%7 === 0) ? '\n' : ' ';
+    out += `${dateSlots[j-1]}${adjacentStr}`;
+  }
+
+  const headerStr        = 'Su Mo Tu We Th Fr Sa';
+  out = `${headerStr}\n${out}`;
+  return out;
+}
+/* Highlight dates for a single calendar */
 module.exports = CalendarUtil;

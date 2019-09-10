@@ -8,9 +8,9 @@
 
 const EMPTY_DATA_SCHEMA =
 {
-  allTasks: {},       /* All tasks which haven't been archived */
-  archivedTasks: {},  /* Un-permanently deleted tasks */
-  projects: []        /* An array of 'Project' task ids. */
+  tasks: {},    /* Mutable task store. Archived tasks are flaged but not deleted. */
+  projects: [], /* An array of project task ids. */
+  sprints: {}   /* Mutable store for sprints. */
 }
 
 function Dao() {
@@ -22,21 +22,21 @@ Dao.prototype.createTask = function(task, doS3Upload) {
   //TODO: Validate data...
 
   var id = 0; /* id will be `0` when adding the first task */
-  if (Object.keys(appData.allTasks).length > 0) { /*Get next id */
+  if (Object.keys(appData.tasks).length > 0) { /*Get next id */
     var _ = require('underscore');
-    id = _.max(Object.values(appData.allTasks),
+    id = _.max(Object.values(appData.tasks),
         (task) => { return task.id; }).id + 1;
   }
 
   task.id               = id;
-  appData.allTasks[id]  = task; /* Add task */
+  appData.tasks[id]  = task; /* Add task */
 
   if (task.project)
     appData.projects.push(task.id);
 
   /* If this task should be a child of an existing task/project, relate them */
   if (task.parentTaskId) {
-    var parentTask = appData.allTasks[task.parentTaskId];
+    var parentTask = appData.tasks[task.parentTaskId];
     if (parentTask)
       parentTask.subtasks.push(task.id);
     else
@@ -72,9 +72,9 @@ Dao.prototype.clearTasks = function() {
 
 /* Schema A/O (09/23/2019)
  * {
- *   allTasks: { n : Task, n+1 : Task ...},
- *   activeTasks: { n : Task, n+1 : Task ...},  -> Subset of `allTasks`.
- *   archivedTasks: { n : Task, n+1 : Task ...} -> Subset of `allTasks`.
+ *   tasks: { n : Task, n+1 : Task ...},
+ *   activeTasks: { n : Task, n+1 : Task ...},  -> Subset of `tasks`.
+ *   archivedTasks: { n : Task, n+1 : Task ...} -> Subset of `tasks`.
  *   projects: { n : Task, ...}                 -> Contains project tasks only.
  * }
  *
@@ -87,13 +87,13 @@ Dao.prototype.getAppData = function(filter) {
 }
 
 Dao.prototype.getAllTasks = function() {
-  return Object.values(this.getAppData().allTasks);
+  return Object.values(this.getAppData().tasks);
 }
 
 Dao.prototype.updateTask = async function(update) {
 
   const appDataModel = this.getAppData();
-  const taskModel    = appDataModel.allTasks[update.taskId];
+  const taskModel    = appDataModel.tasks[update.taskId];
   /* Task ID of the task we're modifying */
   const taskId       = taskModel.id;
 
@@ -102,7 +102,7 @@ Dao.prototype.updateTask = async function(update) {
   taskModel.annotations.push(update.annotation);
 
   if (update.shouldRelateParent) {
-    const parentTaskModel = appDataModel.allTasks[update.relatedParentTaskId];
+    const parentTaskModel = appDataModel.tasks[update.relatedParentTaskId];
     //Add task as child of parent task model subtasks if not already present...
     if (! parentTaskModel.subtasks.includes(taskModel.id))
       parentTaskModel.subtasks.push(taskModel.id);
@@ -132,18 +132,18 @@ Dao.prototype.deleteTask = function(taskId) {
   return new Promise( (resolve, reject) => {
     var appDataModel              = this.getAppData();
     var shouldDeleteSubtasks = true; //TODO: Make configurable.
-    const task = appDataModel.allTasks[taskId];
+    const task = appDataModel.tasks[taskId];
     if (! task)
       throw `task with id ${taskId} does not exist!!`;
 
     const deleteRecursive = (task) => {
-      if (! task || !appDataModel.allTasks[task.id]) {
+      if (! task || !appDataModel.tasks[task.id]) {
         console.log(`Task undefined or unpresent in appDataModel, returning`); return;
       }
       if (shouldDeleteSubtasks && task.subtasks.length > 0) {
         console.log(`shouldDeleteSubtasks flag is true, deleteing subtasks...`);
         task.subtasks.forEach((subtaskId) => {
-          deleteRecursive(appDataModel.allTasks[subtaskId]);
+          deleteRecursive(appDataModel.tasks[subtaskId]);
         });
       }
       /* If task is a project , remove it from the project list */
@@ -155,7 +155,7 @@ Dao.prototype.deleteTask = function(taskId) {
 
       console.log(`Removing task with id ${task.id}`);
 
-      delete appDataModel.allTasks[task.id];
+      delete appDataModel.tasks[task.id];
     }
 
     deleteRecursive(task);
@@ -179,12 +179,12 @@ Dao.prototype.getProjects = function() {
 
 Dao.prototype.completeTask = function(id) {
   var appData  = this.getAppData();
-  var allTasks = appData.allTasks;
+  var tasks = appData.tasks;
 
-  if (!allTasks[id])
+  if (!tasks[id])
     throw `Task ${id} does not exist!!!`;
 
-  const task = allTasks[id];
+  const task = tasks[id];
 
   if (task.points === 0) { /* Set completion fields on the task. */
     task.complete = true;

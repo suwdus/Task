@@ -15,7 +15,7 @@ function UpdateCommand(appData) {
 }
 
 UpdateCommand.prototype.run = async function (args) {
-  if (Object.keys(this.appData.allTasks).length === 0) {
+  if (Object.keys(this.appData.tasks).length === 0) {
     console.log('No tasks present to update!');
     process.exit();
   }
@@ -89,7 +89,7 @@ function getPointUpdateString(pointUpdate, pointsLeft) {
 function printProjects() {
   const appData = require('../dao').getAppData();
   appData.projects.forEach((projectId) => {
-    const project = appData.allTasks[projectId];
+    const project = appData.tasks[projectId];
     console.log(`${project.title} (${project.id})`);
   });
 }

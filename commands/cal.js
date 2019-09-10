@@ -17,7 +17,7 @@ function CalendarCommand(appData) {
 CalendarCommand.prototype.run = function () {
   const moment = require('moment-timezone');
 
-  var taskListOutputPromise = this.printUtil.printTasks(this.appData.allTasks);
+  var taskListOutputPromise = this.printUtil.printTasks(this.appData.tasks);
   var calendarOutputPromise = this.calendarUtil.getCalendarView(require('../dao').getAllTasks());
 
   calendarOutputPromise

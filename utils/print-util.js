@@ -80,7 +80,7 @@ PrintUtil.prototype.printTask = function(task) {
   generalTaskData.push([
     task.id,
     getAgeString(task.creationDate),
-    getProjectString(dao.getAppData().allTasks, task),
+    getProjectString(dao.getAppData().tasks, task),
     task.title,
     chalk.italic(getDateString(task.dueDate)),
     getStatusString(task),

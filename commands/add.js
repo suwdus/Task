@@ -43,7 +43,7 @@ AddCommand.prototype.run = async function (args) {
 
   this.dao.createTask(buildTaskModel(args), doS3Upload);
 
-  const calendarTasks = Object.values(require('../dao').getAppData().allTasks);
+  const calendarTasks = Object.values(require('../dao').getAppData().tasks);
 
   await this.calendarUtil.getCalendarView(calendarTasks)
   .then((calendarOutput) =>  {
@@ -66,7 +66,6 @@ function validateAddInput(args) {
 }
 
 function buildTaskModel(args) {
-  /* TODO: Use Task Model builder class or lib for builder pattern. */
   const title           = argValue(args.title, args.t);
   const creationDate    = moment();
   const complete        = false;
@@ -82,19 +81,21 @@ function buildTaskModel(args) {
   const owner           = (args.owner) ? args.owner : config.name;
   const annotations     = [];
 
-  return {
-    title: title,
-    creationDate: creationDate,
-    dueDate: dueDate,
-    complete: complete,
-    completionDate: completionDate,
-    parentTaskId : parentTaskId,
-    project: project,
-    subtasks: subtasks,
-    points: points,
-    owner: owner,
-    annotations: annotations
-  }
+  const TaskModelBuilder = require('../builders/task-model-builder');
+
+  return TaskModelBuilder.build(
+      title,
+      creationDate,
+      dueDate,
+      complete,
+      completionDate,
+      parentTaskId,
+      project,
+      subtasks,
+      points,
+      owner,
+      annotations
+  );
 }
 
 function argValue(obj1, obj2) {
