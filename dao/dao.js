@@ -51,9 +51,7 @@ Dao.prototype.createTask = function(task, doS3Upload) {
     console.log('1 task created');
 
     if (doS3Upload) {
-      var S3Util = require('../utils/s3-util');
-      var s3Util = new S3Util();
-      s3Util.uploadData();
+      require('../utils/s3-util').uploadData();
     }
   }).catch((err) => {
     console.log('Could not create task', err);
@@ -85,6 +83,16 @@ Dao.prototype.createSprint = function(sprintModel) {
 }
 
 Dao.prototype.selectSprint = function(sprintId) {
+  var _ = require('underscore');
+
+  const appData = this.getAppData();
+  if (_.isEmpty(appData.sprints)) {
+    console.log(`No sprints available to select from`);
+    process.exit();
+  } else if (_.isUndefined(appData.sprints[sprintId])) {
+    console.log(`Sprint with id ${sprintId} does not exist`);
+    process.exit();
+  }
 
   config.tmp.selectedSprintId = sprintId;
   const json = JSON.stringify(config);
@@ -96,8 +104,7 @@ Dao.prototype.selectSprint = function(sprintId) {
     console.log('Could not select sprint', err);
   });
 
-  if (true) { //TODO
-    var appData = this.getAppData();
+  if (true) { /* Set current sprint ID for team */
     appData.currentSprintId = sprintId;
 
     const appJson = JSON.stringify(appData);
@@ -111,9 +118,32 @@ Dao.prototype.selectSprint = function(sprintId) {
 }
 
 Dao.prototype.addSprintTask = function(sprintTaskModel) {
+  var _ = require('underscore');
+
+  //Validation checks: User has selected a sprint id already.
+
+  if (_.isNull(config.tmp.selectedSprintId) ||
+      _.isUndefined(config.tmp.selectedSprintId)) {
+    console.log(`Please select a sprint`);
+    process.exit();
+  }
 
   var appData = this.getAppData();
+
+  //Validation checks: Task exists.
+
+  if (_.isUndefined(appData.tasks[sprintTaskModel.taskId])) {
+    console.log(`Task with id ${sprintTaskModel.taskId} does not exist.`);
+    process.exit();
+  }
+
   const sprint = appData.sprints[config.tmp.selectedSprintId];
+
+  //Validation checks: Task already in sprint.
+  if (sprint.sprintTasks[sprintTaskModel.taskId]) {
+    console.log(`Task with id ${sprintTaskModel.taskId} already belongs to sprint.`);
+    process.exit();
+  }
 
   sprint.sprintTasks[sprintTaskModel.taskId] = sprintTaskModel;
 
@@ -124,6 +154,32 @@ Dao.prototype.addSprintTask = function(sprintTaskModel) {
     console.log('task added to sprint');
   }).catch((err) => {
     console.log('error adding task to sprint', err);
+  });
+}
+
+Dao.prototype.removeTaskFromSprint = function(taskId) {
+  var _ = require('underscore');
+
+  //Validation checks: User has selected a sprint id already.
+  if (_.isNull(config.tmp.selectedSprintId) ||
+      _.isUndefined(config.tmp.selectedSprintId)) {
+    console.log(`Please select a sprint`);
+    process.exit();
+  }
+
+  var appData  = this.getAppData();
+  const sprint = appData.sprints[config.tmp.selectedSprintId];
+
+  //Delete task from sprint...
+  delete sprint.sprintTasks[taskId];
+
+  const json = JSON.stringify(appData);
+
+  require('fs').promises.writeFile(config.taskFile, json)
+  .then(() => {
+    console.log('task removed from sprint');
+  }).catch((err) => {
+    console.log('error removing task from sprint', err);
   });
 }
 
@@ -186,13 +242,24 @@ Dao.prototype.deleteTasks = function(taskIds) {
 }
 
 Dao.prototype.deleteTask = function(taskId) {
+  var _ = require('underscore');
 
   return new Promise( (resolve, reject) => {
+
     var appDataModel              = this.getAppData();
-    var shouldDeleteSubtasks = true; //TODO: Make configurable.
+    var shouldDeleteSubtasks      = true; //TODO: Make configurable.
+
     const task = appDataModel.tasks[taskId];
+
     if (! task)
       throw `task with id ${taskId} does not exist!!`;
+
+    const cleanupTaskFromSprints = (appDataModel, taskId) => {
+      const sprints = appDataModel.sprints;
+      appDataModel.sprints = _.forEach(sprints, (sprint) => {
+        delete sprint.sprintTasks[taskId];
+      });
+    }
 
     const deleteRecursive = (task) => {
       if (! task || !appDataModel.tasks[task.id]) {
@@ -213,6 +280,7 @@ Dao.prototype.deleteTask = function(taskId) {
 
       console.log(`Removing task with id ${task.id}`);
 
+      cleanupTaskFromSprints(appDataModel, task.id);
       delete appDataModel.tasks[task.id];
     }
 

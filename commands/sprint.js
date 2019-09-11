@@ -39,6 +39,8 @@ SprintCommand.prototype.run = function (args) {
     this.showSprint();
   } else if (subCommand  === 'add') {
     this.addTasks(args);
+  } else if (subCommand  === 'remove') {
+    this.removeTask(args);
   }
 }
 
@@ -57,7 +59,6 @@ SprintCommand.prototype.selectSprint = function (args) {
 
 SprintCommand.prototype.addTasks = function(args) {
   var _ = require('underscore');
-  var _this = this;
 
   if (_.isUndefined(args.taskIds) ) {
     console.log('Please specify --taskIds flag');
@@ -69,16 +70,18 @@ SprintCommand.prototype.addTasks = function(args) {
   const SprintTaskModelBuilder = require(
     '../builders/sprint-task-model-builder');
 
+  _this = this;
   _.each(taskIds, function (taskId) {
     _this.dao.addSprintTask(SprintTaskModelBuilder.build(taskId));
   });
 }
 
 SprintCommand.prototype.showSprint = function() {
+  var _ = require('underscore');
 
   const sprintId = this.appData.currentSprintId;
 
-  if (!sprintId) { /* Exit if current sprint hasn't been selected */
+  if (_.isUndefined(sprintId) || _.isNull(sprintId)) { /* Exit if current sprint hasn't been selected */
     console.log('No current sprint available');
     process.exit();
   }
@@ -86,8 +89,8 @@ SprintCommand.prototype.showSprint = function() {
 
   console.log(require('chalk').blue(require('chalk').bold(`\n\n<<Sprint>>: ${sprint.name}\n`)));
 
-  var taskListOutputPromise = this.printUtil.printTasks(this.appData.tasks);
-  var calendarOutputPromise = this.calendarUtil.getCalendarView(require('../utils/data-util').getTasksForCurrentSprint());
+  var taskListOutputPromise = this.printUtil.printTasks(require('../utils/data-util').getTasksForCurrentSprint())
+  var calendarOutputPromise = this.calendarUtil.getCalendarView(require('../utils/data-util').getAllTasks());
 
   calendarOutputPromise
   .then((calendarOutput) => {
@@ -100,6 +103,16 @@ SprintCommand.prototype.showSprint = function() {
     });
   });
 
+}
+
+SprintCommand.prototype.removeTask = function(args) {
+  var _ = require('underscore');
+
+  if (_.isUndefined(args.taskId) ) {
+    console.log('Please specify --taskId flag');
+    process.exit();
+  }
+  this.dao.removeTaskFromSprint(args.taskId);
 }
 
 async function processNewSprint(args) {

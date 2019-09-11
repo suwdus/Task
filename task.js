@@ -30,7 +30,7 @@ function TaskCommand() {
   const subCommandMap = configurator.userSubCommandMap();
 
   if (!subCommand) /* Set default subcommand */
-    subCommand = 'cal';
+    subCommand = 'sprint';
 
   //Get/Set mandatory data necessary for all commands besides `init`.
   if (subCommand !== 'init')

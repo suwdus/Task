@@ -53,6 +53,7 @@ function buildCalendarOutput(tasks) {
 }
 
 function highlight(tasks, calendarMonthNum) {
+  const chalk            = require('chalk');
   const moment           = require('moment-timezone');
   const monthBeginMoment = moment().month(calendarMonthNum-1);
   const monthEndMoment   = monthBeginMoment.endOf('month');
@@ -102,12 +103,14 @@ function highlight(tasks, calendarMonthNum) {
 
       const thisIdOrProjectId = (task.project) ? task.id : task.parentTaskId;
       const projectColorHighlightOrDefault = (thisIdOrProjectId) ?
-              require('chalk')[projectColorMap[thisIdOrProjectId]] : require('chalk').red;
+              chalk[projectColorMap[thisIdOrProjectId]] : chalk.red;
 
-      const colorize = isTaskDueDateToday ? require('chalk').yellow : projectColorHighlightOrDefault;
+      const colorize = isTaskDueDateToday ? chalk.yellow : projectColorHighlightOrDefault;
 
-      if(match)
-        dateSlots[dateIndex] = dateSlotString.replace(regex, require('chalk').bold(colorize(match[0])));
+      if(match && task.belongsToCurrentSprint)
+        dateSlots[dateIndex] = dateSlotString.replace(regex, chalk.bold(colorize(match[0])));
+      else if (match)
+        dateSlots[dateIndex] = dateSlotString.replace(regex, colorize(match[0]));
       else
         console.log('no match');
 
@@ -124,7 +127,7 @@ function highlight(tasks, calendarMonthNum) {
     const dateSlotString = dateSlots[dateIndex];
     const match = dateSlotString.match(regex);
 
-    dateSlots[dateIndex] = dateSlotString.replace(regex, require('chalk').blue(match[0]));
+    dateSlots[dateIndex] = dateSlotString.replace(regex, chalk.blue(match[0]));
   }
 
 

@@ -51,6 +51,8 @@ S3Util.prototype.uploadData = function() {
   });
 }
 
+S3Util.prototype.updateConfig = updateConfig;
+
 function createBucketAndUpdateConfig(config) {
   const AWS             = require('aws-sdk');
   const uuid            = require('uuid');
@@ -95,6 +97,9 @@ function updateConfig(config) {
   const path         = require('path');
   const fs           = require('fs').promises;
 
+  //Clear tmp data...
+  delete config.tmp['selectedSprintId'];
+
   //Set app required globals...
   global.config = config;
 
@@ -122,4 +127,4 @@ function getS3BucketString(bucketStr) {
           .replace(/.s3.*/,'');
 }
 
-module.exports = S3Util;
+module.exports = new S3Util();

@@ -8,12 +8,10 @@
 /* task init */
 
 
-const S3Util = require('../utils/s3-util');
-
 /* Note: appData and config will be undefined for this command */
 
 function InitCommand(appData) {
-  this.s3Util = new S3Util();
+  this.s3Util = require('../utils/s3-util');
 }
 
 InitCommand.prototype.run = function (args) {
