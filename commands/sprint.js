@@ -1,0 +1,163 @@
+/**
+ *
+ * @author Philip M. Turner
+ *
+ */
+
+
+/* task add|a */
+
+const moment       = require('moment-timezone');
+
+function SprintCommand(appData) {
+  this.appData      = appData;
+  this.dao          = require('../dao/');
+  this.util         = require('../utils/command-util');
+
+  this.printUtil    = require('../utils/print-util');
+  this.calendarUtil = require('../utils/calendar-util');
+}
+
+SprintCommand.prototype.run = function (args) {
+  var _ = require('underscore');
+  var subCommand = process.argv[3];
+
+  if (_.isUndefined(subCommand))
+    subCommand = 'ls'; /* Default subcommand to show the sprint */
+
+  if ( (subCommand !== 'new' && subCommand !== 'select') &&
+    _.isUndefined(config.tmp.selectedSprintId)) { /* Subcommands besides these require sprint selection */
+    console.log('Please select a sprint before running this command');
+    process.exit();
+  }
+
+  if (subCommand === 'new') {
+    processNewSprint(args);
+  } else if (subCommand === 'select') {
+    this.selectSprint(args);
+  } else if (subCommand  === 'ls') {
+    this.showSprint();
+  } else if (subCommand  === 'add') {
+    this.addTasks(args);
+  }
+}
+
+SprintCommand.prototype.selectSprint = function (args) {
+  var _ = require('underscore');
+
+  if (_.isUndefined(args.sprintId) ) {
+    console.log('Please specify --sprintId flag');
+    process.exit();
+  }
+  const sprintId = args.sprintId;
+
+  require('../dao').selectSprint(sprintId);
+
+}
+
+SprintCommand.prototype.addTasks = function(args) {
+  var _ = require('underscore');
+  var _this = this;
+
+  if (_.isUndefined(args.taskIds) ) {
+    console.log('Please specify --taskIds flag');
+    process.exit();
+  }
+
+  const taskIds = [ args.taskIds ];
+
+  const SprintTaskModelBuilder = require(
+    '../builders/sprint-task-model-builder');
+
+  _.each(taskIds, function (taskId) {
+    _this.dao.addSprintTask(SprintTaskModelBuilder.build(taskId));
+  });
+}
+
+SprintCommand.prototype.showSprint = function() {
+
+  const sprintId = this.appData.currentSprintId;
+
+  if (!sprintId) { /* Exit if current sprint hasn't been selected */
+    console.log('No current sprint available');
+    process.exit();
+  }
+  const sprint = this.appData.sprints[sprintId];
+
+  console.log(require('chalk').blue(require('chalk').bold(`\n\n<<Sprint>>: ${sprint.name}\n`)));
+
+  var taskListOutputPromise = this.printUtil.printTasks(this.appData.tasks);
+  var calendarOutputPromise = this.calendarUtil.getCalendarView(require('../utils/data-util').getTasksForCurrentSprint());
+
+  calendarOutputPromise
+  .then((calendarOutput) => {
+    taskListOutputPromise.then((taskList) => {
+      var out = `Currently in Q${moment().quarter()} ` + `${moment().year().toString()}\n\n` +
+                `${moment().tz(config.timezone).format("ddd, hA")}\n` +
+                `${calendarOutput}\n` +
+                `${taskList}`;
+      console.log(out);
+    });
+  });
+
+}
+
+async function processNewSprint(args) {
+
+  if (args.i) { //Flag for interactive sprint creation...
+    const argPromptArr = [
+      {argKey: 'name', prompt: 'What is the name of this sprint?: ', value: null},
+      {argKey: 'sprintBeginDate', prompt: 'When does this sprint begin? (YYYY-MM-DD): ', value: null},
+      {argKey: 'sprintEndDate', prompt: 'When does this sprint end? (YYYY-MM-DD): ', value: null}
+    ];
+
+    await this.util.constructArgsInteractively(args, argPromptArr)
+      .then( (constructedArgs) => args = constructedArgs)
+      .catch( (err) => {
+        console.log(err);
+        process.exit();
+      });
+  }
+
+  validateSprintInput(args);
+  require('../dao').createSprint(buildSprintModel(args));
+}
+
+function validateSprintInput(args) {
+  if ( !args.name && !args.n ) {
+    throw 'Please supply --name argument';
+  }
+
+  if ( !args.sprintBeginDate && !args.b) {
+    throw 'Please supply --sprint-begin-date argument';
+  } else if (! moment(argValue(args.sprintBeginDate,args.b)).isValid()) {
+    throw 'Please enter a valid --sprint-begin-date argument.';
+  }
+
+  if ( !args.sprintEndDate && !args.e) {
+    throw 'Please supply --sprint-end-date argument';
+  } else if (! moment(argValue(args.sprintEndDate,args.e)).isValid()) {
+    throw 'Please enter a valid --sprint-end-date argument.';
+  }
+}
+
+function buildSprintModel(args) {
+  const name            = argValue(args.name, args.n);
+  const creationDate    = moment();
+  const sprintBeginDate = moment(argValue(args.sprintBeginDate,args.b)).add(7, 'hours');
+  const sprintEndDate   = moment(argValue(args.sprintEndDate,args.e)).add(7, 'hours');
+
+  const SprintModelBuilder = require('../builders/sprint-model-builder');
+
+  return SprintModelBuilder.build(
+      name,
+      sprintBeginDate,
+      sprintEndDate
+  );
+}
+
+function argValue(obj1, obj2) {
+  return (obj1) ? obj1 : obj2;
+}
+
+module.exports = SprintCommand;

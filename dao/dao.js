@@ -8,9 +8,10 @@
 
 const EMPTY_DATA_SCHEMA =
 {
+  currentSprintId: null,
   tasks: {},    /* Mutable task store. Archived tasks are flaged but not deleted. */
   projects: [], /* An array of project task ids. */
-  sprints: {}   /* Mutable store for sprints. */
+  sprints: {},  /* Mutable store for sprints. */
 }
 
 function Dao() {
@@ -60,6 +61,72 @@ Dao.prototype.createTask = function(task, doS3Upload) {
 
 }
 
+Dao.prototype.createSprint = function(sprintModel) {
+  var appData = this.getAppData();
+
+  var id = 0; /* id will be `0` when adding the first sprint */
+  if (Object.keys(appData.sprints).length > 0) { /*Get next id */
+    var _ = require('underscore');
+    id = _.max(Object.values(appData.sprints),
+        (sprint) => { return sprint.id; }).id + 1;
+  }
+
+  sprintModel.id = id;
+  appData.sprints[id] = sprintModel;
+
+  const json = JSON.stringify(appData);
+
+  require('fs').promises.writeFile(config.taskFile, json)
+  .then(() => {
+    console.log('1 sprint created');
+  }).catch((err) => {
+    console.log('Could not create sprint', err);
+  });
+}
+
+Dao.prototype.selectSprint = function(sprintId) {
+
+  config.tmp.selectedSprintId = sprintId;
+  const json = JSON.stringify(config);
+
+  require('fs').promises.writeFile(config.configFile, json)
+  .then(() => {
+    console.log(`sprint ${sprintId} selected`);
+  }).catch((err) => {
+    console.log('Could not select sprint', err);
+  });
+
+  if (true) { //TODO
+    var appData = this.getAppData();
+    appData.currentSprintId = sprintId;
+
+    const appJson = JSON.stringify(appData);
+    require('fs').promises.writeFile(config.taskFile, appJson)
+    .then(() => {
+      console.log('updated current sprint id for team');
+    }).catch((err) => {
+      console.log('Could not update current sprint id for team', err);
+    });
+  }
+}
+
+Dao.prototype.addSprintTask = function(sprintTaskModel) {
+
+  var appData = this.getAppData();
+  const sprint = appData.sprints[config.tmp.selectedSprintId];
+
+  sprint.sprintTasks[sprintTaskModel.taskId] = sprintTaskModel;
+
+  const json = JSON.stringify(appData);
+
+  require('fs').promises.writeFile(config.taskFile, json)
+  .then(() => {
+    console.log('task added to sprint');
+  }).catch((err) => {
+    console.log('error adding task to sprint', err);
+  });
+}
+
 /* Delete tasks from ~/.tasks. */
 Dao.prototype.clearTasks = function() {
   const schema = JSON.stringify(EMPTY_DATA_SCHEMA);
@@ -70,20 +137,11 @@ Dao.prototype.clearTasks = function() {
   .catch((err) => console.log('Error writing data to task file', err));
 }
 
-/* Schema A/O (09/23/2019)
- * {
- *   tasks: { n : Task, n+1 : Task ...},
- *   activeTasks: { n : Task, n+1 : Task ...},  -> Subset of `tasks`.
- *   archivedTasks: { n : Task, n+1 : Task ...} -> Subset of `tasks`.
- *   projects: { n : Task, ...}                 -> Contains project tasks only.
- * }
- *
- * Will return the data structured as above.
- *
- */
-Dao.prototype.getAppData = function(filter) {
-  const taskJsonPath = config.taskFile;
-  return require(taskJsonPath);
+Dao.prototype.getAppData = function(filter) { //TODO
+  const AppData = require('../logic-objects/app-data');
+  const data = require(config.taskFile);
+
+  return new AppData(data);
 }
 
 Dao.prototype.getAllTasks = function() {
@@ -148,9 +206,9 @@ Dao.prototype.deleteTask = function(taskId) {
       }
       /* If task is a project , remove it from the project list */
       if (task.project && appDataModel.projects.includes(task.id)) {
-        console.log(`Removing task with id ${removedTaskId} removed from project list`);
         const idx           = appDataModel.projects.indexOf(task.Id);
         const removedTaskId = appDataModel.projects.pop(idx);
+        console.log(`Removing task with id ${removedTaskId} from project list`);
       }
 
       console.log(`Removing task with id ${task.id}`);

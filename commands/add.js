@@ -8,13 +8,12 @@
 /* task add|a */
 
 const moment       = require('moment-timezone');
-const CalendarUtil = require('../utils/calendar-util');
 
 function AddCommand(appData) {
   this.appData      = appData;
   this.dao          = require('../dao/');
   this.util         = require('../utils/command-util');
-  this.calendarUtil = new CalendarUtil();
+  this.calendarUtil = require('../utils/calendar-util');
 }
 
 AddCommand.prototype.run = async function (args) {
@@ -43,7 +42,7 @@ AddCommand.prototype.run = async function (args) {
 
   this.dao.createTask(buildTaskModel(args), doS3Upload);
 
-  const calendarTasks = Object.values(require('../dao').getAppData().tasks);
+  const calendarTasks = require('../dao').getAllTasks();
 
   await this.calendarUtil.getCalendarView(calendarTasks)
   .then((calendarOutput) =>  {

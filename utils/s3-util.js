@@ -82,7 +82,8 @@ function createBucketAndUpdateConfig(config) {
         taskFile: taskFile,
         bucketLocation : data.Location,
         name : config.name,
-        timezone: config.timezone
+        timezone: config.timezone,
+        tmp: {}
       });
     }
   });
@@ -94,12 +95,14 @@ function updateConfig(config) {
   const path         = require('path');
   const fs           = require('fs').promises;
 
+  //Set app required globals...
+  global.config = config;
 
   this.writeFile = function() {
     fs.writeFile(config.configFile, configString)
     .then(() => {
       console.log('Successfully wrote configuration information to config file');
-      this.dao.clearTasks();
+      require('../dao').clearTasks();
     }).catch((err) => console.log('Error writing configuration information to config file', err));
   }
 

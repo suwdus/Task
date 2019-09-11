@@ -28,6 +28,8 @@ Configurator.prototype.userSubCommandMap = function() {
     'upload': './commands/upload',
     'delete': './commands/del',
     'clear': './commands/clear',
+    'sprint': './commands/sprint',
+    'init': './commands/init',
 
     /* Short command mappings */
     'cal': './commands/cal',

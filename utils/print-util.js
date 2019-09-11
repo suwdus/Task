@@ -213,4 +213,4 @@ function createTable(tableData) {
   return output;
 }
 
-module.exports = PrintUtil;
+module.exports = new PrintUtil();

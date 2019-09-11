@@ -11,9 +11,8 @@ function CalendarUtil() {
 }
 
 /* Will return a Promise containing the task calendar. */
-CalendarUtil.prototype.getCalendarView = function (requestedTasks) {
+CalendarUtil.prototype.getCalendarView = function (tasks) {
     var calendarOutputPromise = new Promise( (resolve, reject) => {
-      var tasks = require('../dao').getAllTasks();
       var output = buildCalendarOutput(tasks);
       resolve(output);
   });
@@ -44,11 +43,11 @@ function buildCalendarOutput(tasks) {
   const splitCal3 = highlight(tasks, nextMonthNum).split('\n');
 
   /* Combine calendars */
-  var calendarAll = ''; const len = 6;
+  var calendarAll = ''; const len = 7;
   for (var j = 0; j < len; j++) {
     calendarAll += `\n${splitCal1[j].padEnd(20)}  ${splitCal2[j].padEnd(20)}  ${splitCal3[j].padEnd(20)}`;
   }
-  calendarAll += `\n${legend}\n`;
+  calendarAll += `\n\n${legend}\n`;
 
   return calendarAll;
 }
@@ -61,6 +60,7 @@ function highlight(tasks, calendarMonthNum) {
   const daysInMonth      = monthEndMoment.date();
   const dayOfWeekMonthStartsOn = monthBeginMoment.isoWeekday();
   const dayOfWeekMonthEndsOn   = monthEndMoment.isoWeekday();
+  const monthHeader            = require('center-align')(monthBeginMoment.format('MMMM YYYY'),20);
 
   //Construct array of dates...
   var dateSlots = [];
@@ -107,7 +107,7 @@ function highlight(tasks, calendarMonthNum) {
       const colorize = isTaskDueDateToday ? require('chalk').yellow : projectColorHighlightOrDefault;
 
       if(match)
-        dateSlots[dateIndex] = dateSlotString.replace(regex, colorize(match[0]));
+        dateSlots[dateIndex] = dateSlotString.replace(regex, require('chalk').bold(colorize(match[0])));
       else
         console.log('no match');
 
@@ -146,8 +146,8 @@ function highlight(tasks, calendarMonthNum) {
   }
 
   const headerStr        = 'Su Mo Tu We Th Fr Sa';
-  out = `${headerStr}\n${out}`;
+  out = `${monthHeader}\n${headerStr}\n${out}`;
   return out;
 }
 /* Highlight dates for a single calendar */
-module.exports = CalendarUtil;
+module.exports = new CalendarUtil();

@@ -8,11 +8,9 @@
 /* task ls|l ? <filter> */
 
 
-const PrintUtil = require('../utils/print-util');
-
 function ListCommand(appData) {
   this.appData    = appData;
-  this.printUtil  = new PrintUtil();
+  this.printUtil  = require('../utils/print-util');
 }
 
 ListCommand.prototype.run = function (args) {

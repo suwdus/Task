@@ -4,13 +4,10 @@
  *
  */
 
-const PrintUtil    = require('../utils/print-util');
-const CalendarUtil = require('../utils/calendar-util');
-
 function CalendarCommand(appData) {
   this.appData      = appData;
-  this.printUtil    = new PrintUtil();
-  this.calendarUtil = new CalendarUtil();
+  this.printUtil    = require('../utils/print-util');
+  this.calendarUtil = require('../utils/calendar-util');
 }
 
 /* Returns a Promise containing the task calendar string. */
