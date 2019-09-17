@@ -15,10 +15,8 @@ DataUtil.prototype.getTasksForCurrentSprint = function() {
 
   const appData = this.dao.getAppData();
   const sprintTasks = appData.sprints[appData.currentSprintId].sprintTasks;
+  const tasks = _.map(sprintTasks, sprintTask => appData.tasks[sprintTask.taskId]);
 
-  const tasks = _.map(sprintTasks, (sprintTask) => {
-    return appData.tasks[sprintTask.taskId]
-  });
   return tasks;
 }
 

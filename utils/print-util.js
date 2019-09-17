@@ -47,7 +47,7 @@ PrintUtil.prototype.printTasks = function(filteredTasks) {
       data.push([
         task.id,
         getAgeString(task.creationDate),
-        getProjectString(filteredTasks, task),
+        getProjectString(require('../dao').getAppData().tasks, task),
         task.title,
         chalk.italic(getDateString(task.dueDate)),
         getStatusString(task),
@@ -88,7 +88,7 @@ PrintUtil.prototype.printTask = function(task) {
     getPointsLeftString(task),
     getLastUpdatedDateString(task)]);
 
-  task.annotations.reverse().forEach((annotation) => {
+  task.annotations.forEach((annotation) => {
     annotationTaskData.push([
       require('moment')(annotation.date).from(require('moment')()),
       annotation.pointUpdate,
@@ -129,7 +129,7 @@ function getProjectString(tasks, task) {
   if (task.project)
     return task.title;
   else if (tasks[task.parentTaskId])
-    return `${tasks[task.parentTaskId].title} (${tasks[task.parentTaskId].id})`;
+    return `${tasks[task.parentTaskId].title}`;
   else
     return '/';
 }

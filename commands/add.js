@@ -76,7 +76,7 @@ function buildTaskModel(args) {
   const project         = args.project;
   const parentTaskId    = argValue(args.parentTaskId, args.P);
   const subtasks        = [];
-  const points          = args.points;
+  const points          = Number.parseInt(args.points);
   const owner           = (args.owner) ? args.owner : config.name;
   const annotations     = [];
 

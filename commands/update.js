@@ -50,7 +50,7 @@ function buildUpdateModel(args) {
   const task               = require('../dao').getAllTasks()[taskId];
   const comment            = (args.i) ? args.comment : process.argv[4];
   const shouldRelateParent = args.shouldRelateParent;
-  var pointUpdate          = (args.i) ? args.pointUpdate : Number(process.argv[5]);
+  var pointUpdate          = (args.i) ? Number(args.pointUpdate) : Number(process.argv[5]);
 
   if (isNaN(pointUpdate))
     pointUpdate = null;

@@ -26,10 +26,7 @@ function buildCalendarOutput(tasks) {
                 ` ${chalk.blue('today')},` +
                 ` ${chalk.red('due')}, `+
                 ` ${chalk.yellow('due-today')},`+
-                ` ${chalk.bold('overdue')},`+
-                ` weekend,`+
-                ` ${chalk.green('holiday')},`+
-                ` ${chalk.underline('weeknumber')}.`
+                ` ${chalk.bold('overdue')}.`;
 
   var calendarString = '';
 
@@ -71,15 +68,7 @@ function highlight(tasks, calendarMonthNum) {
   //Highlight dates according to task due dates...
 
   const highlightedDatesForMonth = [];
-  const projectIds      = require('../dao').getProjects();
   const now             = moment().tz(config.timezone);
-  const projectColors   = ['magenta','green','yellow','purple','grey'];
-  var projectColorMap   = {};
-
-  /* Assign each project to a color from the array */
-  for (var i = 0; i < projectIds.length; i++) {
-    projectColorMap[projectIds[i]] = projectColors[i];
-  }
 
   for (let task of tasks) {
     if (task.dueDate) {
@@ -101,14 +90,10 @@ function highlight(tasks, calendarMonthNum) {
                               && taskDueDateMonth === calendarMonthNum //Task is also related to this month (this is a double check)
                               && dueDate.date() === now.date();        //Task is due today
 
-      const thisIdOrProjectId = (task.project) ? task.id : task.parentTaskId;
-      const projectColorHighlightOrDefault = (thisIdOrProjectId) ?
-              chalk[projectColorMap[thisIdOrProjectId]] : chalk.red;
-
-      const colorize = isTaskDueDateToday ? chalk.yellow : projectColorHighlightOrDefault;
+      const colorize = isTaskDueDateToday ? chalk.blue: chalk.cyan;
 
       if(match && task.belongsToCurrentSprint)
-        dateSlots[dateIndex] = dateSlotString.replace(regex, chalk.bold(colorize(match[0])));
+        dateSlots[dateIndex] = dateSlotString.replace(regex, chalk.inverse(colorize(match[0])));
       else if (match)
         dateSlots[dateIndex] = dateSlotString.replace(regex, colorize(match[0]));
       else

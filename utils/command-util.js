@@ -62,7 +62,7 @@ function getValueFromPrompt(val) {
       return true;
     default:
       //Try to parse value as an int...
-      if (val.match(/^[0-9]+$/))
+      if (val.match(/^(\-)?[0-9]+$/))
         return Number.parseInt(val)
       return val;
   }
