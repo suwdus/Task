@@ -17,6 +17,9 @@ DataUtil.prototype.getTasksForCurrentSprint = function() {
   const sprintTasks = appData.sprints[appData.currentSprintId].sprintTasks;
   const tasks = _.map(sprintTasks, sprintTask => appData.tasks[sprintTask.taskId]);
 
+  return _.sortBy(_.map(sprintTasks, sprintTask =>appData.tasks[sprintTask.taskId]),
+                   task => (task.complete) ? 1 : 0);
+
   return tasks;
 }
 
