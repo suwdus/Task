@@ -9,12 +9,12 @@
 
 
 function UploadCommand(tasks) {
-  this.s3Util = require('../utils/s3-util');
+    this.s3Util = require('../utils/s3-util');
 }
 
 UploadCommand.prototype.run = function (args) {
 
-  this.s3Util.uploadData();
+    this.s3Util.uploadData();
 
 }
 

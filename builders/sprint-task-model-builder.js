@@ -5,19 +5,19 @@
  */
 
 function SprintTaskModel(input) {
-  for(let [key, val] of Object.entries(input)) {
-    this[key] = val;
-  }
-  //Add additional task metadata...
-  this.dateAddedToSprint = require('moment')();
-  this.isFromPriorSprint = false;
-  this.validate();
+    for(let [key, val] of Object.entries(input)) {
+        this[key] = val;
+    }
+    //Add additional task metadata...
+    this.dateAddedToSprint = require('moment')();
+    this.isFromPriorSprint = false;
+    this.validate();
 }
 
 SprintTaskModel.prototype.validate = function() {
-  //TODO: Validate model...
-  if (false)
-    throw 'Model was invalid';
+    //TODO: Validate model...
+    if (false)
+        throw 'Model was invalid';
 }
 
 function SprintTaskModelBuilder() {
@@ -25,9 +25,9 @@ function SprintTaskModelBuilder() {
 
 SprintTaskModelBuilder.prototype.build = function (taskId) {
 
-  return new SprintTaskModel({
-    taskId : taskId
-  });
+    return new SprintTaskModel({
+        taskId : taskId
+    });
 }
 
 module.exports = new SprintTaskModelBuilder();

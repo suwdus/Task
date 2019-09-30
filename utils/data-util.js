@@ -7,46 +7,44 @@
  */
 
 function DataUtil() {
-  this.dao = require('../dao');
+    this.dao = require('../dao');
 }
 
 DataUtil.prototype.getTasksForCurrentSprint = function() {
-  var _ = require('underscore');
+    const _         = require('underscore'),
+        appData     = this.dao.getAppData(), //Would be nice to simply getSprints from appData.
+        sprintTasks = appData.sprints[appData.currentSprintId].sprintTasks,
+        tasks       = _.map(sprintTasks, sprintTask => appData.tasks[sprintTask.taskId]);
 
-  const appData = this.dao.getAppData();
-  const sprintTasks = appData.sprints[appData.currentSprintId].sprintTasks;
-  const tasks = _.map(sprintTasks, sprintTask => appData.tasks[sprintTask.taskId]);
+    return _.sortBy(_.map(sprintTasks, sprintTask =>appData.tasks[sprintTask.taskId]),
+                               task => (task.complete) ? 1 : 0);
 
-  return _.sortBy(_.map(sprintTasks, sprintTask =>appData.tasks[sprintTask.taskId]),
-                   task => (task.complete) ? 1 : 0);
-
-  return tasks;
 }
 
 DataUtil.prototype.getTasksForCurrentSprintAsMap = function() {
-  var _ = require('underscore');
-  return _.indexBy(this.getTasksForCurrentSprint(), 'id');
+    const _ = require('underscore');
+
+    return _.indexBy(this.getTasksForCurrentSprint(), 'id');
 }
 
 DataUtil.prototype.getAllTasks = function() {
-  var _ = require('underscore');
+    const _       = require('underscore'),
+    sprintTaskMap = this.getTasksForCurrentSprintAsMap(),
+    allTasks      = this.dao.getAllTasks();
 
-  const sprintTaskMap = this.getTasksForCurrentSprintAsMap();
-  const allTasks    = this.dao.getAllTasks();
+    var allTasksWithMetadata = _.map(allTasks, function(task) {
+        if(! _.isUndefined(sprintTaskMap[task.id])) {
+            task.belongsToCurrentSprint = true;
+        }
+        return task;
+    });
 
-  var allTasksWithMetadata = _.map(allTasks, function(task) {
-    if(! _.isUndefined(sprintTaskMap[task.id])) {
-      task.belongsToCurrentSprint = true;
-    }
-    return task;
-  });
+    //Put sprint tasks in the front of the list.
+    allTasksWithMetadata = _.sortBy(allTasksWithMetadata, function(task) {
+        return (task.belongsToCurrentSprint === true) ? 0 : 1;
+    });
 
-  //Put sprint tasks in the front of the list.
-  allTasksWithMetadata = _.sortBy(allTasksWithMetadata, function(task) {
-    return (task.belongsToCurrentSprint === true) ? 0 : 1;
-  });
-
-  return allTasksWithMetadata;
+    return allTasksWithMetadata;
 
 }
 
