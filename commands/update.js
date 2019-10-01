@@ -29,7 +29,10 @@ UpdateCommand.prototype.run = async function (args) {
         ];
 
         await this.util.constructArgsInteractively(argPromptArr)
-            .then( (constructedArgs) => args = constructedArgs);
+            .then( (constructedArgs) => args = {
+                ...args,
+                ...constructedArgs
+            });
     }
 
     if (args.shouldRelateParent) { /* User would like to relate this task to a parent task... */
@@ -37,8 +40,11 @@ UpdateCommand.prototype.run = async function (args) {
             {argKey: 'relatedParentTaskId', prompt: 'What is the id of the parent task?: ', value: null}
         ];
         printProjects();
-        await this.util.constructArgsInteractively(args, relateParentPrompt)
-            .then( (constructedArgs) => args = constructedArgs);
+        await this.util.constructArgsInteractively(relateParentPrompt)
+            .then( (constructedArgs) => args = {
+                ...args,
+                ...constructedArgs
+            });
     }
 
     this.dao.updateTask(buildUpdateModel(args));
@@ -46,10 +52,11 @@ UpdateCommand.prototype.run = async function (args) {
 
 //TODO: Put in ./builders/
 function buildUpdateModel(args) {
-    const taskId             = (args.i) ? args.id : process.argv[3];
-    const task               = require('../dao').getAllTasks()[taskId];
-    const comment            = (args.i) ? args.comment : process.argv[4];
-    const shouldRelateParent = args.shouldRelateParent;
+    const taskId             = (args.i) ? args.id : process.argv[3],
+          task               = require('../dao').getAppData().tasks[taskId],
+          comment            = (args.i) ? args.comment : process.argv[4],
+          shouldRelateParent = args.shouldRelateParent;
+
     var pointUpdate          = (args.i) ? Number(args.pointUpdate) : Number(process.argv[5]);
 
     if (isNaN(pointUpdate))
@@ -63,6 +70,7 @@ function buildUpdateModel(args) {
         relatedParentTaskId: args.relatedParentTaskId,
         annotation: buildAnnotationModel(comment, pointUpdate, task.points)
     };
+
     return updateModel;
 }
 

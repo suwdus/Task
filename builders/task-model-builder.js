@@ -5,6 +5,9 @@
  */
 
 /* TODO: Builder should perform validations */
+
+function TaskModelBuilder() {}
+
 TaskModelBuilder.build = function (
     title,
     creationDate,

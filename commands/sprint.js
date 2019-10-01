@@ -71,7 +71,7 @@ SprintCommand.prototype.addTasks = function(args) {
     }
 
     _.each(taskIds, (taskId) => {
-        _this.dao.addSprintTask(SprintTaskModelBuilder.build(taskId));
+        this.dao.addSprintTask(SprintTaskModelBuilder.build(taskId));
     });
 }
 

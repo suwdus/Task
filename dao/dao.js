@@ -227,14 +227,14 @@ Dao.prototype.getAllTasks = function() {
 
 Dao.prototype.updateTask = async function(update) {
 
-    const appDataModel = this.getAppData();
-    const taskModel        = appDataModel.tasks[update.taskId];
-    /* Task ID of the task we're modifying */
-    const taskId             = taskModel.id;
+    const appDataModel = this.getAppData(),
+          taskModel    = appDataModel.tasks[update.taskId],
+          taskId       = taskModel.id;
 
     /* Make task model modifications */
     taskModel.points += (!update.pointUpdate) ? 0 : update.pointUpdate;
     taskModel.annotations.push(update.annotation);
+    //console.log(appDataModel.tasks[update.taskId]);
 
     if (update.shouldRelateParent) {
         const parentTaskModel = appDataModel.tasks[update.relatedParentTaskId];
@@ -246,11 +246,12 @@ Dao.prototype.updateTask = async function(update) {
     }
 
     const modifiedData = JSON.stringify(appDataModel);
+    console.log('modified json data', modifiedData);
 
     await require('fs').promises
-    .writeFile(config.taskFile, modifiedData)
-    .then(() => console.log('Task successfully updated.'))
-    .catch((err) => console.log('Error updating task', err));
+        .writeFile(config.taskFile, modifiedData)
+        .then(() => console.log('Task successfully updated.'))
+        .catch((err) => console.log('Error updating task', err));
 
     if (taskModel.points === 0)
         this.completeTask(taskId);
@@ -325,8 +326,9 @@ Dao.prototype.getProjects = function() {
 }
 
 Dao.prototype.completeTask = function(id) {
-    var appData    = this.getAppData();
-    var tasks = appData.tasks;
+    const fs       = require('fs'),
+          appData  = JSON.parse(fs.readFileSync(config.taskFile).toString()),
+          tasks    = appData.tasks;
 
     if (!tasks[id])
         throw `Task ${id} does not exist!!!`;
