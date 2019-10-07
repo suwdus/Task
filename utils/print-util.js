@@ -57,6 +57,7 @@ PrintUtil.printTasks = function(filteredTasks) {
         });
 
         var output = createTable(data);
+        output = output.split('\n').map( (line, i) => (i % 2 === 0) ? line : chalk.bgBlue(chalk.white(line))).join('\n');
         output += `\n(${taskList.length} task${ (taskList.length) === 1 ? '':'s'})\n`; /* i.e. Prints (1 task). */
 
         resolve(output);

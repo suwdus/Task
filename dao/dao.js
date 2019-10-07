@@ -246,7 +246,6 @@ Dao.prototype.updateTask = async function(update) {
     }
 
     const modifiedData = JSON.stringify(appDataModel);
-    console.log('modified json data', modifiedData);
 
     await require('fs').promises
         .writeFile(config.taskFile, modifiedData)
