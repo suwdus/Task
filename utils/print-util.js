@@ -46,14 +46,14 @@ PrintUtil.printTasks = function(filteredTasks) {
         taskList.forEach((task) => {
             data.push([
                 task.id,
-                getAgeString(task.creationDate),
-                getProjectString(require('../dao').getAppData().tasks, task),
+                task.getAgeString(),
+                task.getProjectString(),
                 task.title,
-                chalk.italic(getDateString(task.dueDate)),
-                getStatusString(task),
+                chalk.italic(task.getDateString()),
+                task.getStatus(),
                 task.owner,
-                getPointsLeftString(task),
-                getLastUpdatedDateString(task)])
+                task.getPointsLeftString(),
+                task.getLastUpdatedDateString()])
         });
 
         var output = createTable(data);
@@ -82,14 +82,14 @@ PrintUtil.printTask = function(task) {
 
     generalTaskData.push([
         task.id,
-        getAgeString(task.creationDate),
-        getProjectString(dao.getAppData().tasks, task),
+        task.getAgeString(),
+        task.getProjectString(),
         task.title,
-        chalk.italic(getDateString(task.dueDate)),
-        getStatusString(task),
+        chalk.italic(task.getDateString()),
+        task.getStatus(),
         task.owner,
-        getPointsLeftString(task),
-        getLastUpdatedDateString(task)]);
+        task.getPointsLeftString(),
+        task.getLastUpdatedDateString()]);
 
     task.annotations.forEach((annotation) => {
         annotationTaskData.push([
@@ -115,85 +115,6 @@ PrintUtil.printTask = function(task) {
 }
 
 /* ======================== Helpers ======================== */
-
-//TODO: Move to Task object definition...
-function getDateString(date) {
-    var moment            = require('moment-timezone');
-    const timezone    = config.timezone;
-
-    return moment(date).tz(timezone).format("dddd, MMMM Do YYYY");
-}
-
-//TODO: Move to Task object definition...
-function getAgeString(date) {
-    var moment                    = require('moment');
-    var timeDifference    = moment().diff(moment(date), 'days');
-    return timeDifference.toString();
-}
-
-//TODO: Move to Task object definition...
-function getProjectString(tasks, task) {
-    if (task.project)
-        return task.title;
-    else if (tasks[task.parentTaskId])
-        return `${tasks[task.parentTaskId].title}`;
-    else
-        return '/';
-}
-
-//TODO: Move to Task object definition...
-function getStatusString(task) {
-    var _ = require('underscore');
-    var moment = require('moment');
-
-    if (task.complete)
-        return 'Complete';
-    else if (_.isEmpty(task.annotations))
-        return 'Stalled';
-
-    const lastAnnotation = _.max(task.annotations, (annotation) => {
-        return moment(annotation.date).unix()
-    });
-
-    const twoDaysAgo         = moment().subtract({hours: 48});
-    const lastAnnotationDate = moment(lastAnnotation.date);
-
-    if (lastAnnotationDate.isAfter(twoDaysAgo)) {
-        return 'In Progress';
-    } else {
-        return 'Stalled';
-    }
-}
-
-//TODO: Move to Task object definition...
-function getLastUpdatedDateString(task) {
-    if (task.annotations.length === 0)
-        return 'No updates';
-
-    return require('moment-timezone')(task.annotations.reverse()[0].date).tz(config.timezone).from(require('moment')());
-}
-
-//TODO: Move to Task object definition...
-function getPointsLeftString(task) {
-    if (task.subtasks.length === 0) {
-        return task.points;
-    }
-
-    function getPoints(task) {
-        if (! task)
-            return 0;
-
-        var count = 0;
-        task.subtasks.forEach( (subtaskId) => {
-            subtask = require('../dao').getAllTasks()[subtaskId];
-            count += getPoints(subtask);
-        });
-        count += task.points;
-        return count;
-    }
-
-    return getPoints(task);
-}
 
 function createTable(tableData) {
     const {table}             = require('table');
