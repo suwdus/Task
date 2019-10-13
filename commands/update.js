@@ -35,6 +35,11 @@ UpdateCommand.prototype.run = async function (args) {
             });
     }
 
+    if (args.question) { /* User just wants to add a question to the task */
+        this.dao.addQuestion(process.argv[3], args.question);
+        return;
+    }
+
     if (args.shouldRelateParent) { /* User would like to relate this task to a parent task... */
         const relateParentPrompt = [
             {argKey: 'relatedParentTaskId', prompt: 'What is the id of the parent task?: ', value: null}

@@ -106,7 +106,12 @@ PrintUtil.printTask = function(task) {
     if (annotationTaskData.length > 0)
         annoationTableOut = createTable(annotationTaskData);
 
-    console.log(`${generalTableOut}\n\nUpdates:\n\n${annoationTableOut}`);
+    var questions = '';
+    if (task.questions) {
+        task.questions.forEach( (q,i) => questions += `${i+1}. ${q}\n`);
+    }
+
+    console.log(`${generalTableOut}\n\nUpdates:\n\n${annoationTableOut}\nQuestions:\n${questions}`);
 }
 
 /* ======================== Helpers ======================== */

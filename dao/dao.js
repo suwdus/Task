@@ -48,7 +48,7 @@ Dao.prototype.createTask = function(task, doS3Upload) {
 
     require('fs').promises.writeFile(config.taskFile, json)
     .then(() => {
-        console.log('1 task created');
+        console.log(`1 task created (id=${task.id})`);
 
         if (doS3Upload) {
             require('../utils/s3-util').uploadData();
@@ -254,6 +254,22 @@ Dao.prototype.updateTask = async function(update) {
 
     if (taskModel.points === 0)
         this.completeTask(taskId);
+}
+
+Dao.prototype.addQuestion = async function(taskId, question) {
+    const _            = require('underscore'),
+          appDataModel = this.getAppData(),
+          taskModel    = appDataModel.tasks[taskId];
+
+    taskModel.questions = _.isUndefined(taskModel.questions) ? [question]:
+        [...taskModel.questions, question];
+
+    const modifiedData = JSON.stringify(appDataModel);
+
+    await require('fs').promises
+        .writeFile(config.taskFile, modifiedData)
+        .then(() => console.log('Question added to task.'))
+        .catch((err) => console.log('Error adding question to task', err));
 }
 
 Dao.prototype.deleteTasks = function(taskIds) {
