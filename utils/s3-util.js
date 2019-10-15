@@ -86,6 +86,11 @@ function createBucketAndUpdateConfig(config) {
             });
         }
     });
+
+    /*
+     * TODO: Call s3.putBucketVersioning to enable versioning for bucket objects (tasks.json)
+     * https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/S3.html#putBucketVersioning-property
+     */
 }
 
 /* Write configuration information to file */
