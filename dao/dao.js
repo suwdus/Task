@@ -252,7 +252,7 @@ Dao.prototype.updateTask = async function(update) {
         .then(() => console.log('Task successfully updated.'))
         .catch((err) => console.log('Error updating task', err));
 
-    if (taskModel.points === 0)
+    if (taskModel.points === 0 && taskModel.complete === false)
         this.completeTask(taskId);
 }
 
