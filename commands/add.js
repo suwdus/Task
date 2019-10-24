@@ -17,24 +17,36 @@ function AddCommand(appData) {
 }
 
 AddCommand.prototype.run = async function (args) {
+    const _ = require('underscore');
 
     if (args.i) { //Flag for interactive task creation...
         const argPromptArr = [
-            {argKey: 'title', prompt: 'What is the title of your task?: ', value: null},
-            {argKey: 'upload', prompt: 'Should we upload your tasks to S3? (y/n): ', value: false},
-            {argKey: 'dueDate', prompt: 'When is this task due? (YYYY-MM-DD): ', value: null},
-            {argKey: 'project', prompt: 'Is this a project task? (y/n): ', value: false},
-            {argKey: 'points', prompt: 'How many points does this task require?: ', value: 0}
-        ];
+            {argKey: 'title', argKeyShort: 't',  prompt: 'What is the title of your task?: ', value: null},
+            {argKey: 'dueDate', argKeyShort: 'd',  prompt: 'When is this task due? (YYYY-MM-DD): ', value: null},
+            {argKey: 'points', prompt: 'How many points does this task require?: ', value: 0},
+            {argKey: 'shouldRelateParent', prompt: 'Would you like to relate this to a parent task? (y/n): ', value: false}
+        ].filter( argPrompt => _.isUndefined(args[argPrompt.argKey]) && _.isUndefined(args[argPrompt.argKeyShort]));
 
-        await this.util.constructArgsInteractively(args, argPromptArr)
-            .then( (constructedArgs) => args = constructedArgs)
-            .catch( (err) => {
-                console.log(err);
-                process.exit();
+        await this.util.constructArgsInteractively(argPromptArr)
+            .then( (constructedArgs) => args = {
+                ...args,
+                ...constructedArgs
             });
+
     } else if (! args.project) {
         args.project = false; /* Default project to false */
+    }
+
+    if (args.shouldRelateParent) { /* User would like to relate this task to a parent task... */
+        const relateParentPrompt = [
+            {argKey: 'parentTaskId', prompt: 'What is the id of the parent task?: ', value: null}
+        ];
+        printProjects();
+        await this.util.constructArgsInteractively(relateParentPrompt)
+            .then( (constructedArgs) => args = {
+                ...args,
+                ...constructedArgs
+            });
     }
 
     validateAddInput(args);
@@ -49,6 +61,14 @@ AddCommand.prototype.run = async function (args) {
         console.log(calendarOutput);
     });
 
+}
+
+function printProjects() {
+    const appData = require('../dao').getAppData();
+    appData.projects.forEach((projectId) => {
+        const project = appData.tasks[projectId];
+        console.log(`${project.title} (${project.id})`);
+    });
 }
 
 
