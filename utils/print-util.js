@@ -26,7 +26,7 @@ const DEFAULT_HEADER = [
     require('chalk').underline(DESCRIPTION_COLUMN_LABEL),
     require('chalk').underline(DUE_DATE_COLUMN_LABEL),
     require('chalk').underline(STATUS_COLUMN_LABEL),
-    require('chalk').underline(OWNER_COLUMN_LABEL),
+    /* require('chalk').underline(OWNER_COLUMN_LABEL), */
     require('chalk').underline(POINTS_COLUMN_LABEL),
     require('chalk').underline(LAST_UPDATED_DATE_COLUMN_LABEL)
 ];
@@ -51,7 +51,7 @@ PrintUtil.printTasks = function(filteredTasks) {
                 task.title,
                 chalk.italic(task.getDateString()),
                 task.getStatus(),
-                task.owner,
+                /* task.owner, */
                 task.getPointsLeftString(),
                 task.getLastUpdatedDateString()])
         });
@@ -87,7 +87,7 @@ PrintUtil.printTask = function(task) {
         task.title,
         chalk.italic(task.getDateString()),
         task.getStatus(),
-        task.owner,
+        /* task.owner, */
         task.getPointsLeftString(),
         task.getLastUpdatedDateString()]);
 

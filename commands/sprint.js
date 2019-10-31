@@ -7,7 +7,7 @@
 
 /* task add|a */
 
-const moment             = require('moment-timezone');
+const moment = require('moment-timezone');
 
 function SprintCommand(appData) {
     this.appData = appData;
